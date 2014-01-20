@@ -1,10 +1,16 @@
 package io.teknek.farsandra;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.CopyOption;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
 
 public class Farsandra {
 
@@ -73,7 +79,7 @@ public class Farsandra {
     
     File instanceBase = new File(instanceName);
     if (this.cleanInstanceOnStart){
-      deleteRecursive(instanceBase);
+      delete(instanceBase);
     }
     instanceBase.mkdir();
     File instanceLog = new File(instanceBase, "log");
@@ -83,11 +89,82 @@ public class Farsandra {
     File instanceConf = new File(instanceBase, "conf");
     instanceConf.mkdir();
     copyConfToInstanceDir(cRoot , instanceConf);
+    File binaryConf = new File(cRoot, "conf");
+    File cassandraYaml = new File (binaryConf,"cassandra.yaml");
+    //List<String> lines = this.readFileIntoStringArray(cassandraYaml);
+    List<String> lines;
+    try {
+      lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    lines = replaceHost(lines);
+    lines = replaceThisWithThatExpectNMatch(lines, 
+            "    - /var/lib/cassandra/data", 
+            "    - " + this.instanceName + "/data/data" , 1);
+    lines = replaceThisWithThatExpectNMatch(lines, 
+            "listen_address: localhost", 
+            "listen_address: " +host , 1);
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(
+              new File(instanceConf, "cassandra.yaml")))){
+      for (String s: lines){
+        bw.write(s);
+        bw.newLine();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    } 
   }
   
+  void delete(File f)  {
+    System.out.println("You just asked me to delte" +f);
+    if (f.isDirectory()) {
+      for (File c : f.listFiles())
+        delete(c);
+    }
+    if (!f.delete())
+      throw new RuntimeException("Failed to delete file: " + f);
+  }
+  
+  public List<String> replaceThisWithThatExpectNMatch(List<String> lines, String match, String replace, int expectedMatches){
+    List<String> result = new ArrayList<String>();
+    int replaced = 0;
+    for (String line: lines){
+      if (!line.equals(match)){
+        result.add(line);
+      } else{
+        replaced++;
+        result.add(replace);
+      }
+    }
+    if (replaced != expectedMatches){
+      throw new RuntimeException("looking to make matches replacement but made "+replaced
+              +" . Likely that farsandra does not understand this version ");
+    }
+    return result;
+  }
+  
+  public List<String> replaceHost(List<String> lines){
+    List<String> result = new ArrayList<String>();
+    int replaced = 0;
+    for (String line: lines){
+      System.out.println(line);
+      if (!line.contains("rpc_address: localhost")){
+        result.add(line);
+      } else{
+        replaced++;
+        result.add("rpc_address: "+host);
+      }
+    }
+    if (replaced != 1){
+      throw new RuntimeException("looking to make 1 replacement but made "+replaced
+              +" . Likely that farsandra does not understand this version ");
+    }
+    return result;
+  }
   public static void copyConfToInstanceDir(File cassandraBinaryRoot, File instanceConf){
-    File binaryConf = new File ( cassandraBinaryRoot, "conf");
-    for (File file: binaryConf.listFiles()){
+    File binaryConf = new File(cassandraBinaryRoot, "conf");
+    for (File file: binaryConf.listFiles()){  
       if (!file.getName().equals("cassandra.yaml")){
         try {
           Files.copy(file.toPath(), new File(instanceConf,file.getName()).toPath() );
@@ -99,6 +176,24 @@ public class Farsandra {
       }
     }
   }
+  
+  
+
+  private List<String> readFileIntoStringArray(File e) {
+    Scanner s;
+    try {
+      s = new Scanner(e);
+    } catch (FileNotFoundException e1) {
+      throw new RuntimeException(e1);
+    }
+    List<String> list = new ArrayList<String>();
+    while (s.hasNext()) {
+      list.add(s.next());
+    }
+    s.close();
+    return list;
+  }
+  
   public static void deleteRecursive(File baseDir){
     
   }
