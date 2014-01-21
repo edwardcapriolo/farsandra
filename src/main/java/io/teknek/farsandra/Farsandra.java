@@ -16,9 +16,12 @@ public class Farsandra {
 
   private String version;
   private String host;
-  private int port;
+  private Integer rpcPort;
+  private Integer storagePort;
   private String instanceName;
   private boolean cleanInstanceOnStart;
+  private boolean createConfigurationFiles;
+  private List<String> seeds;
   
   public Farsandra(){
     
@@ -29,13 +32,18 @@ public class Farsandra {
     return this;
   }
   
+  public Farsandra withSeeds(List<String> seeds){
+    this.seeds = seeds;
+    return this;
+  }
+  
   public Farsandra withVersion(String version){
     this.version = version;
     return this;
   }
   
   public Farsandra withPort(int port){
-    this.port = port;
+    this.rpcPort = port;
     return this;
   }
   
@@ -46,6 +54,11 @@ public class Farsandra {
   
   public Farsandra withInstanceName(String name){
     this.instanceName = name;
+    return this;
+  }
+  
+  public Farsandra withCreateConfigurationFiles(boolean write){
+    this.createConfigurationFiles = write;
     return this;
   }
   
@@ -76,44 +89,61 @@ public class Farsandra {
     //#   JVM_OPTS -- Additional arguments to the JVM for heap size, etc
     //#   CASSANDRA_CONF -- Directory containing Cassandra configuration files.
     //String yarn = " -Dcassandra-foreground=yes org.apache.cassandra.service.CassandraDaemon";
-    
     File instanceBase = new File(instanceName);
-    if (this.cleanInstanceOnStart){
+    if (cleanInstanceOnStart){
       delete(instanceBase);
     }
-    instanceBase.mkdir();
-    File instanceLog = new File(instanceBase, "log");
-    instanceLog.mkdir();
-    File instanceData = new File(instanceBase, "data");
-    instanceData.mkdir();
-    File instanceConf = new File(instanceBase, "conf");
-    instanceConf.mkdir();
-    copyConfToInstanceDir(cRoot , instanceConf);
-    File binaryConf = new File(cRoot, "conf");
-    File cassandraYaml = new File (binaryConf,"cassandra.yaml");
-    //List<String> lines = this.readFileIntoStringArray(cassandraYaml);
-    List<String> lines;
-    try {
-      lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-    lines = replaceHost(lines);
-    lines = replaceThisWithThatExpectNMatch(lines, 
-            "    - /var/lib/cassandra/data", 
-            "    - " + this.instanceName + "/data/data" , 1);
-    lines = replaceThisWithThatExpectNMatch(lines, 
-            "listen_address: localhost", 
-            "listen_address: " +host , 1);
-    try (BufferedWriter bw = new BufferedWriter(new FileWriter(
-              new File(instanceConf, "cassandra.yaml")))){
-      for (String s: lines){
-        bw.write(s);
-        bw.newLine();
+    if (createConfigurationFiles){ 
+      instanceBase.mkdir();
+      File instanceLog = new File(instanceBase, "log");
+      instanceLog.mkdir();
+      File instanceData = new File(instanceBase, "data");
+      instanceData.mkdir();
+      File instanceConf = new File(instanceBase, "conf");
+      instanceConf.mkdir();
+      copyConfToInstanceDir(cRoot , instanceConf);
+      File binaryConf = new File(cRoot, "conf");
+      File cassandraYaml = new File (binaryConf,"cassandra.yaml");
+      //List<String> lines = this.readFileIntoStringArray(cassandraYaml);
+      List<String> lines;
+      try {
+        lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    } 
+      lines = replaceHost(lines);
+      lines = replaceThisWithThatExpectNMatch(lines, 
+              "    - /var/lib/cassandra/data", 
+              "    - " + this.instanceName + "/data/data" , 1);
+      lines = replaceThisWithThatExpectNMatch(lines, 
+              "listen_address: localhost", 
+              "listen_address: " +host , 1);
+      lines = replaceThisWithThatExpectNMatch(lines, 
+              "commitlog_directory: /var/lib/cassandra/commitlog", 
+              "commitlog_directory: " + this.instanceName + "/data/commitlog" , 1 );
+      lines = replaceThisWithThatExpectNMatch(lines,
+              "saved_caches_directory: /var/lib/cassandra/saved_caches", 
+              "saved_caches_directory: " + this.instanceName + "/data/saved_caches", 1);
+      if (storagePort != null){
+        lines = replaceThisWithThatExpectNMatch(lines, "storage_port: 7000", "storage_port: "+storagePort, 1 );
+      }
+      if (rpcPort != null){
+        lines = replaceThisWithThatExpectNMatch(lines, "rpc_port: 9160", "rpc_port: " + rpcPort, 1);
+      }
+      if (seeds!=null){
+        lines = replaceThisWithThatExpectNMatch(lines, "          - seeds: \"127.0.0.1\"",
+                "         - seeds: \""+seeds.get(0)+"\"", 1);
+      }
+      try (BufferedWriter bw = new BufferedWriter(new FileWriter(
+                new File(instanceConf, "cassandra.yaml")))){
+        for (String s: lines){
+          bw.write(s);
+          bw.newLine();
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      } 
+    }
   }
   
   void delete(File f)  {
