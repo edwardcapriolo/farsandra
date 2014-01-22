@@ -22,6 +22,7 @@ public class Farsandra {
   private boolean createConfigurationFiles;
   private List<String> seeds;
   private CForgroundManager manager;
+  private String javaHome;
   
   public Farsandra(){
     manager = new CForgroundManager();
@@ -61,7 +62,12 @@ public class Farsandra {
     this.createConfigurationFiles = write;
     return this;
   }
-    
+  
+  public Farsandra withJavaHome(String javaHome){
+    this.javaHome = javaHome;
+    return this;
+  }
+  
   /**
    * Starts the instance of cassandra in a non-blocking manner. Use line handler and other methods
    * to detect when startup is complete.
@@ -155,13 +161,27 @@ public class Farsandra {
     /*String launch = "/bin/bash -c \"/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath() +" JAVA_HOME="+
             "/usr/java/jdk1.7.0_45 "
             + cstart.getAbsolutePath().toString() + " -f \""; */
-    String [] launchArray = new String [] { "/bin/bash" , "-c" , "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath() +" JAVA_HOME="+
-            "/usr/java/jdk1.7.0_45 "
-            + cstart.getAbsolutePath().toString() + " -f " };
+    String command = "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath();
+    //command = command + " JAVA_HOME=" + "/usr/java/jdk1.7.0_45 ";
+    command = command + buildJavaHome()+ " ";
+    command = command + cstart.getAbsolutePath().toString() + " -f ";
+    String [] launchArray = new String [] { 
+            "/bin/bash" , 
+            "-c" , 
+             command };
     manager.setLaunchArray(launchArray);
     manager.go();
   }
   
+  public String buildJavaHome() {
+    if (this.javaHome != null) {
+      return " JAVA_HOME=" + this.javaHome;
+    } else if (System.getenv("JAVA_HOME") != null) {
+      return " JAVA_HOME=" + System.getenv("JAVA_HOME");
+    } else {
+      return "";
+    }
+  }
   void delete(File f)  {
     if (f.isDirectory()) {
       for (File c : f.listFiles())
@@ -194,7 +214,6 @@ public class Farsandra {
     List<String> result = new ArrayList<String>();
     int replaced = 0;
     for (String line: lines){
-      System.out.println(line);
       if (!line.contains("rpc_address: localhost")){
         result.add(line);
       } else{
