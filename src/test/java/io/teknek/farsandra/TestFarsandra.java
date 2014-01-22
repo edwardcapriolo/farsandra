@@ -7,7 +7,7 @@ import org.junit.Test;
 public class TestFarsandra {
 
   @Test
-  public void simpleTest(){
+  public void simpleTest() throws InterruptedException{
     Farsandra fs = new Farsandra();
     fs.withVersion("2.0.4");
     fs.withCleanInstanceOnStart(true);
@@ -28,8 +28,11 @@ public class TestFarsandra {
       public void handleLine(String line) {
         System.out.println("err "+line);
       }
-    } 
-  );
+    });
+    
+ 
+ 
     fs.start();
+    Thread.sleep(10000);
   }
 }

@@ -149,11 +149,14 @@ public class Farsandra {
     //#   CASSANDRA_CONF -- Directory containing Cassandra configuration files.
     File cstart = new File(new File( cRoot, "bin"),"cassandra");
     
-    String launch = "/bin/bash -c \"env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath() +" JAVA_HOME="+
+    String launch = "/bin/bash -c \"/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath() +" JAVA_HOME="+
             "/usr/java/jdk1.7.0_45 "
             + cstart.getAbsolutePath().toString() + " -f \"";
+    String [] launchArray = new String [] { "/bin/bash" , "-c" , "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath() +" JAVA_HOME="+
+            "/usr/java/jdk1.7.0_45 "
+            + cstart.getAbsolutePath().toString() + " -f " };
     System.out.println(launch);
-    manager.setLaunch(launch);
+    manager.setLaunchArray(launchArray);
     manager.go();
   }
   

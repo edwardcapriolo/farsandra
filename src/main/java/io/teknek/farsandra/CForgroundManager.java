@@ -3,11 +3,13 @@ package io.teknek.farsandra;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CForgroundManager {
-  private String launch;
+  //private String launch;
+  private String [] launchArray;
   private Process p; 
   private AtomicInteger x = new AtomicInteger();
   private Thread waitForTheEnd;
@@ -21,13 +23,25 @@ public class CForgroundManager {
     
   }
   
+  public String[] getLaunchArray() {
+    return launchArray;
+  }
+
+  
+  public void setLaunchArray(String[] launchArray) {
+    this.launchArray = launchArray;
+  }
+
+/*
   public String getLaunch() {
     return launch;
   }
+  */
 
+  /*
   public void setLaunch(String launch) {
     this.launch = launch;
-  }
+  }*/
 
   public void addOutLineHandler(LineHandler h){
     out.add(h);
@@ -42,11 +56,12 @@ public class CForgroundManager {
      * String launch = "/bin/bash -c \"env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath()
      * +" JAVA_HOME="+ "/usr/java/jdk1.7.0_45 " + cstart.getAbsolutePath().toString() + " -f \"";
      */
-    System.out.println(launch);
+    System.out.println(Arrays.asList(this.launchArray));
     Runtime rt = Runtime.getRuntime();
 
     try {
-      p = rt.exec(launch);
+      //p = rt.exec(launch);
+      p = rt.exec(launchArray);
     } catch (IOException e1) {
       // TODO Auto-generated catch block
       e1.printStackTrace();
