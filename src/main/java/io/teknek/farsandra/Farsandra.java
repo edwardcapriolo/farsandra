@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-
 public class Farsandra {
 
   private String version;
@@ -22,9 +21,10 @@ public class Farsandra {
   private boolean cleanInstanceOnStart;
   private boolean createConfigurationFiles;
   private List<String> seeds;
+  private CForgroundManager manager;
   
   public Farsandra(){
-    
+    manager = new CForgroundManager();
   }
   
   public Farsandra withCleanInstanceOnStart(boolean start){
@@ -61,7 +61,7 @@ public class Farsandra {
     this.createConfigurationFiles = write;
     return this;
   }
-  
+    
   public void start(){
     String userHome  = System.getProperty("user.home");
     File home = new File(userHome);
@@ -153,14 +153,8 @@ public class Farsandra {
             "/usr/java/jdk1.7.0_45 "
             + cstart.getAbsolutePath().toString() + " -f \"";
     System.out.println(launch);
-    Runtime rt = Runtime.getRuntime();
-    try {
-      Process p = rt.exec(launch);
-      p.waitFor();
-    } catch (IOException | InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    manager.setLaunch(launch);
+    manager.go();
   }
   
   void delete(File f)  {
@@ -244,6 +238,15 @@ public class Farsandra {
   public static void deleteRecursive(File baseDir){
     
   }
+  
+  public CForgroundManager getManager() {
+    return manager;
+  }
+
+  public void setManager(CForgroundManager manager) {
+    this.manager = manager;
+  }
+
   public static void main (String [] args){
     
   }
