@@ -62,6 +62,10 @@ public class Farsandra {
     return this;
   }
     
+  /**
+   * Starts the instance of cassandra in a non-blocking manner. Use line handler and other methods
+   * to detect when startup is complete.
+   */
   public void start(){
     String userHome  = System.getProperty("user.home");
     File home = new File(userHome);
@@ -104,7 +108,6 @@ public class Farsandra {
       copyConfToInstanceDir(cRoot , instanceConf);
       File binaryConf = new File(cRoot, "conf");
       File cassandraYaml = new File (binaryConf,"cassandra.yaml");
-      //List<String> lines = this.readFileIntoStringArray(cassandraYaml);
       List<String> lines;
       try {
         lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
@@ -155,13 +158,11 @@ public class Farsandra {
     String [] launchArray = new String [] { "/bin/bash" , "-c" , "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath() +" JAVA_HOME="+
             "/usr/java/jdk1.7.0_45 "
             + cstart.getAbsolutePath().toString() + " -f " };
-    //System.out.println(launch);
     manager.setLaunchArray(launchArray);
     manager.go();
   }
   
   void delete(File f)  {
-    System.out.println("You just asked me to delte" +f);
     if (f.isDirectory()) {
       for (File c : f.listFiles())
         delete(c);
@@ -188,6 +189,7 @@ public class Farsandra {
     return result;
   }
   
+ 
   public List<String> replaceHost(List<String> lines){
     List<String> result = new ArrayList<String>();
     int replaced = 0;
@@ -206,6 +208,7 @@ public class Farsandra {
     }
     return result;
   }
+  
   public static void copyConfToInstanceDir(File cassandraBinaryRoot, File instanceConf){
     File binaryConf = new File(cassandraBinaryRoot, "conf");
     for (File file: binaryConf.listFiles()){  
@@ -213,35 +216,12 @@ public class Farsandra {
         try {
           Files.copy(file.toPath(), new File(instanceConf,file.getName()).toPath() );
         } catch (IOException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
+          throw new RuntimeException(e);
         }
-        
       }
     }
   }
-  
-  
-
-  private List<String> readFileIntoStringArray(File e) {
-    Scanner s;
-    try {
-      s = new Scanner(e);
-    } catch (FileNotFoundException e1) {
-      throw new RuntimeException(e1);
-    }
-    List<String> list = new ArrayList<String>();
-    while (s.hasNext()) {
-      list.add(s.next());
-    }
-    s.close();
-    return list;
-  }
-  
-  public static void deleteRecursive(File baseDir){
     
-  }
-  
   public CForgroundManager getManager() {
     return manager;
   }
@@ -250,7 +230,4 @@ public class Farsandra {
     this.manager = manager;
   }
 
-  public static void main (String [] args){
-    
-  }
 }

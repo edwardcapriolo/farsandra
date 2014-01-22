@@ -1,6 +1,7 @@
 package io.teknek.farsandra;
 
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.Test;
 
@@ -15,10 +16,14 @@ public class TestFarsandra {
     fs.withCreateConfigurationFiles(true);
     fs.withHost("localhost");
     fs.withSeeds(Arrays.asList("localhost"));
+    final CountDownLatch started = new CountDownLatch(1);
     fs.getManager().addOutLineHandler( new LineHandler(){
         @Override
         public void handleLine(String line) {
           System.out.println("out "+line);
+          if (line.contains("Listening for thrift clients...")){
+            started.countDown();
+          }
         }
       } 
     );
@@ -29,10 +34,9 @@ public class TestFarsandra {
         System.out.println("err "+line);
       }
     });
-    
- 
- 
     fs.start();
+    started.await();
+    System.out.println("Thrift open. Part time!");
     Thread.sleep(10000);
     fs.getManager().destroy();
   }
