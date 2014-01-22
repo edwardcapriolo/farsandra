@@ -62,6 +62,7 @@ public class CForgroundManager {
     try {
       //p = rt.exec(launch);
       p = rt.exec(launchArray);
+
     } catch (IOException e1) {
       // TODO Auto-generated catch block
       e1.printStackTrace();
@@ -93,5 +94,9 @@ public class CForgroundManager {
     waitForTheEnd.start();
     outstreamThread.start();
     errstreamThread.start();
+  }
+  
+  public void destroy(){
+    p.destroy();
   }
 }

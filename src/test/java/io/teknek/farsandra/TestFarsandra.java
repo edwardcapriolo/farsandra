@@ -34,5 +34,6 @@ public class TestFarsandra {
  
     fs.start();
     Thread.sleep(10000);
+    fs.getManager().destroy();
   }
 }
