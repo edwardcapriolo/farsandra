@@ -36,7 +36,7 @@ public class TestFarsandra {
     });
     fs.start();
     started.await();
-    System.out.println("Thrift open. Part time!");
+    System.out.println("Thrift open. Party time!");
     Thread.sleep(10000);
     fs.getManager().destroy();
   }
