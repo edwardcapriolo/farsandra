@@ -1,15 +1,26 @@
 package io.teknek.farsandra;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
 public class Farsandra {
 
@@ -68,6 +79,68 @@ public class Farsandra {
     return this;
   }
   
+  public static void uncompressTarGZ(File tarFile, File dest) throws IOException {
+    // http://stackoverflow.com/questions/11431143/how-to-untar-a-tar-file-using-apache-commons/14211580#14211580
+    dest.mkdir();
+    TarArchiveInputStream tarIn = null;
+
+    tarIn = new TarArchiveInputStream(new GzipCompressorInputStream(new BufferedInputStream(
+            new FileInputStream(tarFile))));
+
+    TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
+    // tarIn is a TarArchiveInputStream
+    while (tarEntry != null) {// create a file with the same name as the tarEntry
+      File destPath = new File(dest, tarEntry.getName());
+      System.out.println("working: " + destPath.getCanonicalPath());
+      if (destPath.getName().equals("cassandra")){
+        destPath.setExecutable(true);
+      }
+      if (tarEntry.isDirectory()) {
+        destPath.mkdirs();
+      } else {
+        destPath.createNewFile();
+        // byte [] btoRead = new byte[(int)tarEntry.getSize()];
+        byte[] btoRead = new byte[1024];
+        // FileInputStream fin
+        // = new FileInputStream(destPath.getCanonicalPath());
+        BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(destPath));
+        int len = 0;
+
+        while ((len = tarIn.read(btoRead)) != -1) {
+          bout.write(btoRead, 0, len);
+        }
+
+        bout.close();
+        btoRead = null;
+
+      }
+      tarEntry = tarIn.getNextTarEntry();
+    }
+    tarIn.close();
+  }
+  
+  public void download(String version, File location){
+   
+    try {
+      String file = "apache-cassandra-" + version + "-bin.tar.gz";
+      URL url = new URL("http://archive.apache.org/dist/cassandra/" + version + "/" + file);
+      URLConnection conn = url.openConnection();
+      InputStream in = conn.getInputStream();
+      FileOutputStream out = new FileOutputStream(new File(location, file));
+      byte[] b = new byte[1024];
+      int count;
+      while ((count = in.read(b)) >= 0) {
+        out.write(b, 0, count);
+      }
+      out.flush();
+      out.close();
+      in.close();
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  
+  }
   /**
    * Starts the instance of cassandra in a non-blocking manner. Use line handler and other methods
    * to detect when startup is complete.
@@ -88,7 +161,12 @@ public class Farsandra {
     String gunzip = "apache-cassandra-"+version+"-bin.tar.gz";
     File archive = new File(farsandra, gunzip); 
     if (!archive.exists()){
-      //web fetch
+      download(version,farsandra);
+      try {
+        uncompressTarGZ(archive,farsandra);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       //http://archive.apache.org/dist/cassandra/2.0.4/apache-cassandra-2.0.4-bin.tar.gz
       //extract with common compress
     }
@@ -164,7 +242,7 @@ public class Farsandra {
     String command = "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath();
     //command = command + " JAVA_HOME=" + "/usr/java/jdk1.7.0_45 ";
     command = command + buildJavaHome()+ " ";
-    command = command + cstart.getAbsolutePath().toString() + " -f ";
+    command = command + " /bin/bash " + cstart.getAbsolutePath().toString() + " -f ";
     String [] launchArray = new String [] { 
             "/bin/bash" , 
             "-c" , 
