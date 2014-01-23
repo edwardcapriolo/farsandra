@@ -1,7 +1,9 @@
 farsandra
 =========
 
-Run cassandra inside a java project without bring server deps into client classpath
+Run cassandra inside a java project without bring server deps into client classpath.
+
+Farsandra works by downloading and automatically unpacking a cassandra inside $HOME/farsandra. It then uses some clever string replacement to edit the yaml file, and start the service in the foreground.
 
 Usage
 ========
