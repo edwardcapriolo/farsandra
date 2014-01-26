@@ -16,6 +16,7 @@ public class TestFarsandra {
     fs.withCreateConfigurationFiles(true);
     fs.withHost("localhost");
     fs.withSeeds(Arrays.asList("localhost"));
+    fs.withJmxPort(9999);
     final CountDownLatch started = new CountDownLatch(1);
     fs.getManager().addOutLineHandler( new LineHandler(){
         @Override
