@@ -34,6 +34,7 @@ public class Farsandra {
   private List<String> seeds;
   private CForgroundManager manager;
   private String javaHome;
+  private Integer jmxPort;
   
   public Farsandra(){
     manager = new CForgroundManager();
@@ -76,6 +77,11 @@ public class Farsandra {
   
   public Farsandra withJavaHome(String javaHome){
     this.javaHome = javaHome;
+    return this;
+  }
+  
+  public Farsandra withJmxPort(int jmxPort){
+    this.jmxPort = jmxPort;
     return this;
   }
   
@@ -191,7 +197,8 @@ public class Farsandra {
       instanceConf.mkdir();
       copyConfToInstanceDir(cRoot , instanceConf);
       File binaryConf = new File(cRoot, "conf");
-      File cassandraYaml = new File (binaryConf,"cassandra.yaml");
+      File cassandraYaml = new File(binaryConf, "cassandra.yaml");
+      makeCassandraEnv(binaryConf, instanceConf);
       List<String> lines;
       try {
         lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
@@ -249,6 +256,34 @@ public class Farsandra {
              command };
     manager.setLaunchArray(launchArray);
     manager.go();
+  }
+  
+  /**
+   * Builds the cassandra-env.sh replacing stuff along the way
+   * @param binaryConf directory of downloaded conf
+   * @param instanceConf directory for conf to be generated
+   */
+  private void makeCassandraEnv(File binaryConf, File instanceConf) {
+    String envFile = "cassandra-env.sh";
+    File cassandraYaml = new File(binaryConf, envFile);
+    List<String> lines;
+    try {
+      lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    if (this.jmxPort != null){
+      lines = replaceThisWithThatExpectNMatch(lines, "JMX_PORT=\"7199\"", "JMX_PORT=\""
+            + this.jmxPort + "\"", 1);
+    }
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(new File(instanceConf, envFile)))) {
+      for (String s : lines) {
+        bw.write(s);
+        bw.newLine();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
   
   public String buildJavaHome() {
@@ -309,7 +344,8 @@ public class Farsandra {
   public static void copyConfToInstanceDir(File cassandraBinaryRoot, File instanceConf){
     File binaryConf = new File(cassandraBinaryRoot, "conf");
     for (File file: binaryConf.listFiles()){  
-      if (!file.getName().equals("cassandra.yaml")){
+      if (!file.getName().equals("cassandra.yaml") || 
+              !file.getName().equals("cassandra-env.sh")){
         try {
           Files.copy(file.toPath(), new File(instanceConf,file.getName()).toPath() );
         } catch (IOException e) {
