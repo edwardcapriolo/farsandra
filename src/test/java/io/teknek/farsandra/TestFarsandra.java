@@ -1,4 +1,4 @@
-package io.teknek.farsandra;
+  package io.teknek.farsandra;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -21,6 +21,7 @@ import org.junit.Test;
 
 public class TestFarsandra {
 
+
   @Test
   public void testShutdownWithLatch() throws InterruptedException {
     Farsandra fs = new Farsandra();
@@ -31,6 +32,7 @@ public class TestFarsandra {
     fs.withHost("127.0.0.1");
     fs.withSeeds(Arrays.asList("127.0.0.1"));
     fs.withJmxPort(9999);   
+    fs.appendLineToYaml("#this means nothing");
     final CountDownLatch started = new CountDownLatch(1);
     fs.getManager().addOutLineHandler( new LineHandler(){
         @Override

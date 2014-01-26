@@ -14,6 +14,7 @@ import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -38,9 +39,11 @@ public class Farsandra {
   private Integer jmxPort;
   private String maxHeapSize = "256M";
   private String heapNewSize = "100M";
+  private List<String> yamlLinesToAppend;
   
   public Farsandra(){
     manager = new CForgroundManager();
+    yamlLinesToAppend = new ArrayList<String>();
   }
   
   public Farsandra withCleanInstanceOnStart(boolean start){
@@ -53,6 +56,15 @@ public class Farsandra {
     return this;
   }
   
+  /**
+   * Add line to the bottom of yaml. Does not check if line already exists
+   * @param line a line to add
+   * @return the list of lines
+   */
+  public List<String> appendLineToYaml(String line){
+    yamlLinesToAppend.add(line);
+    return yamlLinesToAppend;
+  }
   /**
    * Set the version of cassandra. Should be a string like "2.0.4"
    * @param version
@@ -186,8 +198,6 @@ public class Farsandra {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      //http://archive.apache.org/dist/cassandra/2.0.4/apache-cassandra-2.0.4-bin.tar.gz
-      //extract with common compress
     }
     File cRoot = new File(farsandra, "apache-cassandra-"+version);
     if (!cRoot.exists()){
@@ -243,6 +253,7 @@ public class Farsandra {
         lines = replaceThisWithThatExpectNMatch(lines, "          - seeds: \"127.0.0.1\"",
                 "         - seeds: \"" + seeds.get(0) + "\"", 1);
       }
+      lines = yamlLinesToAppend(lines);
       try (BufferedWriter bw = new BufferedWriter(new FileWriter(
                 new File(instanceConf, "cassandra.yaml")))){
         for (String s: lines){
@@ -271,6 +282,13 @@ public class Farsandra {
              command };
     manager.setLaunchArray(launchArray);
     manager.go();
+  }
+  
+  private List<String> yamlLinesToAppend(List<String> input){
+    List<String> results = new ArrayList<String>();
+    results.addAll(input);
+    results.addAll(yamlLinesToAppend);
+    return results;
   }
   
   /**
