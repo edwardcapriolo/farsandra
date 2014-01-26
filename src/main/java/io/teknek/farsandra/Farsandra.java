@@ -20,8 +20,11 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
+import org.apache.log4j.Logger;
+
 public class Farsandra {
 
+  private static Logger LOGGER = Logger.getLogger(Farsandra.class);
   private String version;
   private String host;
   private Integer rpcPort;
@@ -50,21 +53,41 @@ public class Farsandra {
     return this;
   }
   
+  /**
+   * Set the version of cassandra. Should be a string like "2.0.4"
+   * @param version
+   * @return
+   */
   public Farsandra withVersion(String version){
     this.version = version;
     return this;
   }
   
+  /**
+   * Sets the RPC port
+   * @param port
+   * @return
+   */
   public Farsandra withPort(int port){
     this.rpcPort = port;
     return this;
   }
   
+  /**
+   * sets the listen host and the rpc host
+   * @param host
+   * @return
+   */
   public Farsandra withHost(String host){
       this.host = host;
       return this;
   }
   
+  /**
+   * Sets the instance name. This will also be the data directory where the instance is found
+   * @param name
+   * @return
+   */
   public Farsandra withInstanceName(String name){
     this.instanceName = name;
     return this;
@@ -116,7 +139,7 @@ public class Farsandra {
   }
   
   public void download(String version, File location){
-   
+    LOGGER.info("Version of Cassandra not found locally. Attempting to fetch it from cloud");
     try {
       String file = "apache-cassandra-" + version + "-bin.tar.gz";
       URL url = new URL("http://archive.apache.org/dist/cassandra/" + version + "/" + file);
