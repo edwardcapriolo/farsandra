@@ -35,6 +35,12 @@ public class Farsandra {
   private CForgroundManager manager;
   private String javaHome;
   private Integer jmxPort;
+  private String maxHeapSize = "256M";
+  private String heapNewSize = "100M";
+//  #MAX_HEAP_SIZE="4G"
+//          #HEAP_NEWSIZE="800M"
+
+  
   
   public Farsandra(){
     manager = new CForgroundManager();
@@ -272,9 +278,17 @@ public class Farsandra {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    if (this.jmxPort != null){
+    if (jmxPort != null){
       lines = replaceThisWithThatExpectNMatch(lines, "JMX_PORT=\"7199\"", "JMX_PORT=\""
             + this.jmxPort + "\"", 1);
+    }
+    if (maxHeapSize !=null){
+      lines = replaceThisWithThatExpectNMatch(lines, "#MAX_HEAP_SIZE=\"4G\"", 
+              "MAX_HEAP_SIZE=\""+this.maxHeapSize+"\"", 1);
+    }
+    if (heapNewSize != null) {
+      lines = replaceThisWithThatExpectNMatch(lines, "#HEAP_NEWSIZE=\"800M\"", "HEAP_NEWSIZE=\""
+              + heapNewSize + "\"", 1);
     }
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(new File(instanceConf, envFile)))) {
       for (String s : lines) {
