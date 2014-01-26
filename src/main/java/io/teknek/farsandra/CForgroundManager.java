@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -20,6 +22,7 @@ public class CForgroundManager {
   private Thread waitForTheEnd;
   private Thread outstreamThread;
   private Thread errstreamThread;
+  private CountDownLatch waitForShutdown;
   
   private List<LineHandler> out = new ArrayList<LineHandler>();
   private List<LineHandler> err = new ArrayList<LineHandler>();
@@ -72,13 +75,16 @@ public class CForgroundManager {
     } catch (IOException e1) {
       throw new RuntimeException(e1);
     }
+    waitForShutdown = new CountDownLatch(1);
     InputStream output = process.getInputStream();
     InputStream error = process.getErrorStream();
     waitForTheEnd = new Thread() {
       public void run() {
         try {
           exitValue.set(process.waitFor());
+          waitForShutdown.countDown();
         } catch (InterruptedException e) {
+          waitForShutdown.countDown();
         }
       }
     };
@@ -98,9 +104,22 @@ public class CForgroundManager {
   }
   
   /**
-   * End the process
+   * End the process but do not wait for shutdown latch. Non blocking
    */
   public void destroy(){
     process.destroy();
+  }
+  
+  /**
+   * Wait a certain number of seconds for a shutdown. Throw up violently if it takes too long
+   * @param seconds
+   * @throws InterruptedException
+   */
+  public void destroyAndWaitForShutdown(int seconds) throws InterruptedException {
+    if (waitForShutdown == null){
+      throw new RuntimeException("Instance is not started. Can not shutdown.");
+    }
+    destroy();
+    waitForShutdown.await(seconds, TimeUnit.SECONDS);
   }
 }

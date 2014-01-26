@@ -3,6 +3,7 @@ package io.teknek.farsandra;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 
 
@@ -15,11 +16,38 @@ import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestFarsandra {
 
+  @Test
+  public void testShutdownWithLatch() throws InterruptedException {
+    Farsandra fs = new Farsandra();
+    fs.withVersion("2.0.4");
+    fs.withCleanInstanceOnStart(true);
+    fs.withInstanceName("3_1");
+    fs.withCreateConfigurationFiles(true);
+    fs.withHost("127.0.0.1");
+    fs.withSeeds(Arrays.asList("127.0.0.1"));
+    fs.withJmxPort(9999);   
+    final CountDownLatch started = new CountDownLatch(1);
+    fs.getManager().addOutLineHandler( new LineHandler(){
+        @Override
+        public void handleLine(String line) {
+          System.out.println("out "+line);
+          if (line.contains("Listening for thrift clients...")){
+            started.countDown();
+          }
+        }
+      } 
+    );
+    fs.start();
+    started.await(10, TimeUnit.SECONDS);
+    fs.getManager().destroyAndWaitForShutdown(6);
+  }
   
+  @Ignore
   @Test
   public void threeNodeTest() throws InterruptedException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
     Farsandra fs = new Farsandra();
@@ -118,11 +146,11 @@ public class TestFarsandra {
            " SET value = value + 1 "+
             " WHERE username = 'ed' and countername= 'friends' ";
     for (int i =0;i<10000;i++){
-      wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()) , Compression.NONE, ConsistencyLevel.ALL);
+      wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()) , Compression.NONE, ConsistencyLevel.ONE);
     }
     fs2.getManager().destroy();
     for (int i =0;i<10000;i++){
-      wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()) , Compression.NONE, ConsistencyLevel.ALL);
+      wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()) , Compression.NONE, ConsistencyLevel.ONE);
     }
     } catch (Exception ex){
       ex.printStackTrace();
