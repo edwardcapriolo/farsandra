@@ -5,7 +5,6 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -16,7 +15,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -37,10 +35,6 @@ public class Farsandra {
   private Integer jmxPort;
   private String maxHeapSize = "256M";
   private String heapNewSize = "100M";
-//  #MAX_HEAP_SIZE="4G"
-//          #HEAP_NEWSIZE="800M"
-
-  
   
   public Farsandra(){
     manager = new CForgroundManager();
@@ -95,15 +89,11 @@ public class Farsandra {
     // http://stackoverflow.com/questions/11431143/how-to-untar-a-tar-file-using-apache-commons/14211580#14211580
     dest.mkdir();
     TarArchiveInputStream tarIn = null;
-
     tarIn = new TarArchiveInputStream(new GzipCompressorInputStream(new BufferedInputStream(
             new FileInputStream(tarFile))));
-
     TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
-    // tarIn is a TarArchiveInputStream
     while (tarEntry != null) {// create a file with the same name as the tarEntry
       File destPath = new File(dest, tarEntry.getName());
-      System.out.println("working: " + destPath.getCanonicalPath());
       if (destPath.getName().equals("cassandra")){
         destPath.setExecutable(true);
       }
@@ -111,20 +101,14 @@ public class Farsandra {
         destPath.mkdirs();
       } else {
         destPath.createNewFile();
-        // byte [] btoRead = new byte[(int)tarEntry.getSize()];
         byte[] btoRead = new byte[1024];
-        // FileInputStream fin
-        // = new FileInputStream(destPath.getCanonicalPath());
         BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(destPath));
         int len = 0;
-
         while ((len = tarIn.read(btoRead)) != -1) {
           bout.write(btoRead, 0, len);
         }
-
         bout.close();
         btoRead = null;
-
       }
       tarEntry = tarIn.getNextTarEntry();
     }

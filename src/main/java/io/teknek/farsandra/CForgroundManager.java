@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.log4j.Logger;
 
 /**
  * Launch a process in the foreground get events from the processes output/error streams
@@ -16,8 +17,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class CForgroundManager {
 
+  private static Logger LOGGER = Logger.getLogger(CForgroundManager.class);
   private String [] launchArray;
   private Process process; 
+  /**
+   * The exit value of the forked process. Initialized to 9999.
+   */
   private AtomicInteger exitValue = new AtomicInteger(-9999);
   private Thread waitForTheEnd;
   private Thread outstreamThread;
@@ -68,11 +73,12 @@ public class CForgroundManager {
      * String launch = "/bin/bash -c \"env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath()
      * +" JAVA_HOME="+ "/usr/java/jdk1.7.0_45 " + cstart.getAbsolutePath().toString() + " -f \"";
      */
-    System.out.println(Arrays.asList(this.launchArray));
+    LOGGER.debug(Arrays.asList(this.launchArray));
     Runtime rt = Runtime.getRuntime();
     try {
       process = rt.exec(launchArray);
     } catch (IOException e1) {
+      LOGGER.error(e1.getMessage());
       throw new RuntimeException(e1);
     }
     waitForShutdown = new CountDownLatch(1);
