@@ -40,6 +40,14 @@
 			<version>2.0.4</version>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.apache.thrift</groupId>
+			<artifactId>libthrift</artifactId>
+			<version>0.9.1</version>
+			<scope>test</scope>
+		</dependency>
+            
             
 
 		<dependency>
