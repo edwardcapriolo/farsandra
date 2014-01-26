@@ -191,7 +191,9 @@ public class Farsandra {
     //String yarn = " -Dcassandra-foreground=yes org.apache.cassandra.service.CassandraDaemon";
     File instanceBase = new File(instanceName);
     if (cleanInstanceOnStart){
-      delete(instanceBase);
+      if (instanceBase.exists()){
+        delete(instanceBase);
+      }
     }
     File instanceConf = new File(instanceBase, "conf");
     if (createConfigurationFiles){ 
