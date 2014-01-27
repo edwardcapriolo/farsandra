@@ -40,10 +40,12 @@ public class Farsandra {
   private String maxHeapSize = "256M";
   private String heapNewSize = "100M";
   private List<String> yamlLinesToAppend;
+  private List<String> envLinesToAppend;
   
   public Farsandra(){
     manager = new CForgroundManager();
     yamlLinesToAppend = new ArrayList<String>();
+    envLinesToAppend = new ArrayList<String>();
   }
   
   public Farsandra withCleanInstanceOnStart(boolean start){
@@ -54,6 +56,11 @@ public class Farsandra {
   public Farsandra withSeeds(List<String> seeds){
     this.seeds = seeds;
     return this;
+  }
+  
+  public List<String> appendLinesToEnv(String line){
+    envLinesToAppend.add(line);
+    return envLinesToAppend;
   }
   
   /**
@@ -254,6 +261,7 @@ public class Farsandra {
                 "         - seeds: \"" + seeds.get(0) + "\"", 1);
       }
       lines = yamlLinesToAppend(lines);
+
       try (BufferedWriter bw = new BufferedWriter(new FileWriter(
                 new File(instanceConf, "cassandra.yaml")))){
         for (String s: lines){
@@ -291,6 +299,13 @@ public class Farsandra {
     return results;
   }
   
+  private List<String> envLinesToAppend(List<String> input){
+    List<String> results = new ArrayList<String>();
+    results.addAll( input);
+    results.addAll(this.envLinesToAppend);
+    return results;
+  }
+  
   /**
    * Builds the cassandra-env.sh replacing stuff along the way
    * @param binaryConf directory of downloaded conf
@@ -317,6 +332,7 @@ public class Farsandra {
       lines = replaceThisWithThatExpectNMatch(lines, "#HEAP_NEWSIZE=\"800M\"", "HEAP_NEWSIZE=\""
               + heapNewSize + "\"", 1);
     }
+    lines = envLinesToAppend(lines);
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(new File(instanceConf, envFile)))) {
       for (String s : lines) {
         bw.write(s);

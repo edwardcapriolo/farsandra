@@ -33,6 +33,7 @@ public class TestFarsandra {
     fs.withSeeds(Arrays.asList("127.0.0.1"));
     fs.withJmxPort(9999);   
     fs.appendLineToYaml("#this means nothing");
+    fs.appendLinesToEnv("#this also does nothing");
     final CountDownLatch started = new CountDownLatch(1);
     fs.getManager().addOutLineHandler( new LineHandler(){
         @Override
