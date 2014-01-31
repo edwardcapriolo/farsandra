@@ -87,7 +87,10 @@ public class Farsandra {
     this.version = version;
     return this;
   }
-  
+  public Farsandra withYamlReplacement(String match, String replace){
+    this.yamlReplacements.put(match, replace);
+    return this;
+  }
   public Farsandra withEnvReplacement(String match,String replace){
     this.envReplacements.put(match, replace);
     return this;
@@ -269,6 +272,9 @@ public class Farsandra {
       if (seeds != null) {
         lines = replaceThisWithThatExpectNMatch(lines, "          - seeds: \"127.0.0.1\"",
                 "         - seeds: \"" + seeds.get(0) + "\"", 1);
+      }
+      for (Map.Entry<String,String> entry: yamlReplacements.entrySet()){
+        lines = replaceThisWithThatExpectNMatch(lines, entry.getKey(), entry.getValue(), 1);
       }
       lines = yamlLinesToAppend(lines);
 
