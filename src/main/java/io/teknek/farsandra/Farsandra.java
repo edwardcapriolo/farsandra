@@ -16,6 +16,8 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -41,11 +43,15 @@ public class Farsandra {
   private String heapNewSize = "100M";
   private List<String> yamlLinesToAppend;
   private List<String> envLinesToAppend;
+  private Map<String ,String> envReplacements;
+  private Map<String, String> yamlReplacements;
   
   public Farsandra(){
     manager = new CForgroundManager();
     yamlLinesToAppend = new ArrayList<String>();
     envLinesToAppend = new ArrayList<String>();
+    envReplacements = new TreeMap<String, String>();
+    yamlReplacements = new TreeMap<String, String>();
   }
   
   public Farsandra withCleanInstanceOnStart(boolean start){
@@ -82,6 +88,10 @@ public class Farsandra {
     return this;
   }
   
+  public Farsandra withEnvReplacement(String match,String replace){
+    this.envReplacements.put(match, replace);
+    return this;
+  }
   /**
    * Sets the RPC port
    * @param port
@@ -319,6 +329,9 @@ public class Farsandra {
       lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+    for (Map.Entry<String,String> entry: envReplacements.entrySet()){
+      lines = replaceThisWithThatExpectNMatch(lines, entry.getKey(), entry.getValue(), 1);
     }
     if (jmxPort != null){
       lines = replaceThisWithThatExpectNMatch(lines, "JMX_PORT=\"7199\"", "JMX_PORT=\""

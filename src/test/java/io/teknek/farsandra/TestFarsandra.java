@@ -34,6 +34,7 @@ public class TestFarsandra {
     fs.withJmxPort(9999);   
     fs.appendLineToYaml("#this means nothing");
     fs.appendLinesToEnv("#this also does nothing");
+    fs.withEnvReplacement("#MALLOC_ARENA_MAX=4", "#MALLOC_ARENA_MAX=wombat");
     final CountDownLatch started = new CountDownLatch(1);
     fs.getManager().addOutLineHandler( new LineHandler(){
         @Override
