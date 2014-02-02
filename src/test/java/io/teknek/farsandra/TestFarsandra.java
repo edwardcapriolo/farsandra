@@ -16,15 +16,34 @@ import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestFarsandra {
 
-
+  private Farsandra fs;
+  
+  @Before
+  public void setup(){
+    fs = new Farsandra();
+  }
+  
+  @After
+  public void close(){
+    if (fs != null){
+      try {
+        fs.getManager().destroyAndWaitForShutdown(6);
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+  }
+  
   @Test
   public void testShutdownWithLatch() throws InterruptedException {
-    Farsandra fs = new Farsandra();
     fs.withVersion("2.0.4");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("3_1");
@@ -49,7 +68,6 @@ public class TestFarsandra {
     );
     fs.start();
     started.await(10, TimeUnit.SECONDS);
-    fs.getManager().destroyAndWaitForShutdown(6);
   }
   
   @Ignore
@@ -166,13 +184,11 @@ public class TestFarsandra {
     fs2.start();
     Thread.sleep(100000);
     fs.getManager().destroy();
-
     fs3.getManager().destroy();
   }
   
   @Test
   public void simpleOtherTest() throws InterruptedException{
-    Farsandra fs = new Farsandra();
     fs.withVersion("2.0.3");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("1");
@@ -202,13 +218,10 @@ public class TestFarsandra {
     started.await();
     System.out.println("Thrift open. Party time!");
     Thread.sleep(10000);
-    fs.getManager().destroy();
   }
   
-  
   @Test
-  public void simpleTest() throws InterruptedException{
-    Farsandra fs = new Farsandra();
+  public void simpleTest() throws InterruptedException {
     fs.withVersion("2.0.4");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("1");
@@ -226,7 +239,6 @@ public class TestFarsandra {
         }
       } 
     );
-    
     fs.getManager().addErrLineHandler( new LineHandler(){
       @Override
       public void handleLine(String line) {
@@ -237,6 +249,5 @@ public class TestFarsandra {
     started.await();
     System.out.println("Thrift open. Party time!");
     Thread.sleep(10000);
-    fs.getManager().destroy();
   }
 }
