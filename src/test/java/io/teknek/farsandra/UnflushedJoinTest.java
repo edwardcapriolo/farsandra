@@ -25,7 +25,7 @@ public class UnflushedJoinTest {
   Farsandra fs3;
   Farsandra fs4;
   
-  public Farsandra startInstance(String version, final String instanceName, String listen, String seed,  int port) throws InterruptedException {
+  public static  Farsandra startInstance(String version, final String instanceName, String listen, String seed,  int port) throws InterruptedException {
     Farsandra fs = new Farsandra();
     fs.withVersion(version);
     fs.withCleanInstanceOnStart(true);
