@@ -148,34 +148,35 @@ public class TestFarsandra {
       fs3.start();
       started3.await();
     }
-    
+
     try {
-    FramedConnWrapper wrap = new FramedConnWrapper("127.0.0.1", 9160);
-    
-    String ks = "CREATE KEYSPACE test "+
-         " WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2} ";
-    wrap.open();
-    wrap.getClient().execute_cql3_query(ByteBuffer.wrap((ks).getBytes()) , Compression.NONE, ConsistencyLevel.ALL);
-    wrap.getClient().set_keyspace("test");
-    wrap.getClient().execute_cql3_query(ByteBuffer.wrap(("CREATE TABLE userstats ( "+
-    " username varchar, "+
-    " countername varchar, "+
-    " value counter, "+
-    " PRIMARY KEY (username, countername) "+
-" ) with compact storage  " ).getBytes()) , Compression.NONE, ConsistencyLevel.ALL);
-    
-    Thread.sleep(10000);
-    String incr  = "UPDATE userstats  "+
-           " SET value = value + 1 "+
-            " WHERE username = 'ed' and countername= 'friends' ";
-    for (int i =0;i<10000;i++){
-      wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()) , Compression.NONE, ConsistencyLevel.ONE);
-    }
-    fs2.getManager().destroy();
-    for (int i =0;i<10000;i++){
-      wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()) , Compression.NONE, ConsistencyLevel.ONE);
-    }
-    } catch (Exception ex){
+      FramedConnWrapper wrap = new FramedConnWrapper("127.0.0.1", 9160);
+
+      String ks = "CREATE KEYSPACE test "
+              + " WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 2} ";
+      wrap.open();
+      wrap.getClient().execute_cql3_query(ByteBuffer.wrap((ks).getBytes()), Compression.NONE,
+              ConsistencyLevel.ALL);
+      wrap.getClient().set_keyspace("test");
+      wrap.getClient().execute_cql3_query(
+              ByteBuffer.wrap(("CREATE TABLE userstats ( " + " username varchar, "
+                      + " countername varchar, " + " value counter, "
+                      + " PRIMARY KEY (username, countername) " + " ) with compact storage  ")
+                      .getBytes()), Compression.NONE, ConsistencyLevel.ALL);
+
+      Thread.sleep(10000);
+      String incr = "UPDATE userstats  " + " SET value = value + 1 "
+              + " WHERE username = 'ed' and countername= 'friends' ";
+      for (int i = 0; i < 10000; i++) {
+        wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()), Compression.NONE,
+                ConsistencyLevel.ONE);
+      }
+      fs2.getManager().destroy();
+      for (int i = 0; i < 10000; i++) {
+        wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()), Compression.NONE,
+                ConsistencyLevel.ONE);
+      }
+    } catch (Exception ex) {
       ex.printStackTrace();
     }
     System.out.println("added");
