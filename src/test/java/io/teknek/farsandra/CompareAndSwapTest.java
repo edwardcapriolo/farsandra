@@ -4,9 +4,13 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import junit.framework.Assert;
+
+import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlResult;
 import org.junit.After;
 import org.junit.Test;
 
@@ -34,24 +38,41 @@ public class CompareAndSwapTest {
                     + " name varchar, " + " value varchar, "
                     + " PRIMARY KEY (rowkey, name) " + " ) with compact storage  ")
                     .getBytes()), Compression.NONE, ConsistencyLevel.ALL);
+    
+    wrap.getClient().execute_cql3_query(
+            ByteBuffer.wrap(("CREATE TABLE userstats ( " + " username varchar, "
+                    + " countername varchar, " + " value counter, "
+                    + " PRIMARY KEY (username, countername) " + " ) with compact storage  ")
+                    .getBytes()), Compression.NONE, ConsistencyLevel.ALL);
 
-    Thread.sleep(10000);
-    for (int i = 0; i < 10000; i++) {
-      /* String incr = "UPDATE userstats  " + " SET value = value + 1 "
-              + " WHERE username = '"+i+"' and countername= 'friends' ";
-      wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()), Compression.NONE,
-              ConsistencyLevel.ALL); */
+    String incr = "UPDATE userstats  " + " SET value = value + 1 "
+            + " WHERE username = '5' and countername= 'friends' ";
+    wrap.getClient().execute_cql3_query(ByteBuffer.wrap((incr).getBytes()), Compression.NONE,
+            ConsistencyLevel.ALL);
+    
+    for (int i = 0; i < 1000; i++) {
       List<Column> changes = new ArrayList<Column>();
       Column c = new Column();
       c.setName("acol".getBytes());
-      c.setValue("a_value".getBytes());
+      c.setValue((i+"").getBytes());
       c.setTimestamp(System.nanoTime());
       changes.add( c );
-      wrap.getClient().cas(ByteBuffer.wrap("a".getBytes()), "widestring", 
-              new ArrayList<Column>(), changes, ConsistencyLevel.SERIAL, ConsistencyLevel.ONE);
-      System.out.println("worked once");
+      List<Column> expected = new ArrayList<Column>();
+      if (i!=0) {
+        Column c2 = new Column();
+        c2.setName("acol".getBytes());
+        c2.setValue((i-1+"").getBytes());
+        expected.add(c2);
+      }
+      CASResult res = wrap.getClient().cas(ByteBuffer.wrap("a".getBytes()), "widestring", 
+              expected, changes, ConsistencyLevel.SERIAL, ConsistencyLevel.ONE);
+      Assert.assertEquals(true, res.success);
     }
-     
+    CqlResult res = wrap.getClient().execute_cql3_query(ByteBuffer.wrap("select * from widestring where rowkey = 'a'".getBytes()), Compression.NONE, ConsistencyLevel.ONE);
+    System.out.println(res);
+    String s = new String(res.rows.get(0).getColumns().get(2).getValue());
+    
+    Assert.assertEquals("999", s);
 
     System.out.println("added");
   }

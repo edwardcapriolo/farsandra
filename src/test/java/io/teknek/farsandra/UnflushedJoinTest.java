@@ -45,7 +45,7 @@ public class UnflushedJoinTest {
       }
     });
     fs.start();
-    started.await(10, TimeUnit.SECONDS);
+    started.await();
     return fs;
   }
  
