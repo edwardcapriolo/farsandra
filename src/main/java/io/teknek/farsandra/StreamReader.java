@@ -31,7 +31,7 @@ public class StreamReader implements Runnable {
         }
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      System.out.println("Connection to Cassandra closed: " + e.getMessage());
     } 
   }
   
