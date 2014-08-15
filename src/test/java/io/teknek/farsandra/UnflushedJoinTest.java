@@ -1,5 +1,7 @@
 package io.teknek.farsandra;
 
+import static org.junit.Assert.assertTrue;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
@@ -45,8 +47,16 @@ public class UnflushedJoinTest {
         }
       }
     });
+    fs.getManager().addProcessHandler(new ProcessHandler() { 
+      @Override
+      public void handleTermination(int exitValue) {
+        System.out.println("Cassandra terminated with exit value: " + exitValue);
+        started.countDown();
+      }
+    });
     fs.start();
     started.await();
+    assertTrue("Cassandra is not running", fs.getManager().isRunning());
     return fs;
   }
  

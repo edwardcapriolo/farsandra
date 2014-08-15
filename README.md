@@ -63,6 +63,17 @@ Putting listeners on the output and error streams
       }
     });
 
+Adding an handler to manage process termination
+==========
+
+    fs.getManager().addProcessHandler(new ProcessHandler() {
+        @Override
+        public void handleTermination(int exitValue) {
+            System.out.println("Cassandra terminated with exit value: " + exitValue);
+            started.countDown();
+        }
+    });
+
 Puttingit all together
 ==========
 
@@ -89,6 +100,13 @@ Puttingit all together
       public void handleLine(String line) {
         System.out.println("err "+line);
       }
+    });
+    fs.getManager().addProcessHandler(new ProcessHandler() {
+        @Override
+        public void handleTermination(int exitValue) {
+            System.out.println("Cassandra terminated with exit value: " + exitValue);
+            started.countDown();
+        }
     });
     fs.start();
     started.await();

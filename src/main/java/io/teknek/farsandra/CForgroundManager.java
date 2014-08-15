@@ -31,6 +31,7 @@ public class CForgroundManager {
   
   private List<LineHandler> out = new ArrayList<LineHandler>();
   private List<LineHandler> err = new ArrayList<LineHandler>();
+  private List<ProcessHandler> processHandlers = new ArrayList<ProcessHandler>();
   
   public CForgroundManager(){
     
@@ -41,30 +42,42 @@ public class CForgroundManager {
   }
 
   /**
-   * Set the fork command 
+   * Set the fork command
+
    * @param launchArray
    */
   public void setLaunchArray(String[] launchArray) {
     this.launchArray = launchArray;
   }
 
+
   /**
    * Add a handler for system out events
+
    * @param h
    */
   public void addOutLineHandler(LineHandler h){
     out.add(h);
   }
   
-  
   /**
    * Add a handler for system error events
+
    * @param h
    */
   public void addErrLineHandler(LineHandler h){
     err.add(h);
   }
   
+  /**
+   * Add a handler for cassandra process events
+   * 
+   * @param h
+   */
+  public void addProcessHandler(ProcessHandler h){
+    processHandlers.add(h);
+  }
+
   /**
    * Start the process and attach handlers
    */
@@ -89,6 +102,9 @@ public class CForgroundManager {
         try {
           exitValue.set(process.waitFor());
           waitForShutdown.countDown();
+          for (ProcessHandler h : processHandlers) {
+            h.handleTermination(exitValue.get());
+          }
         } catch (InterruptedException e) {
           waitForShutdown.countDown();
         }
@@ -108,14 +124,14 @@ public class CForgroundManager {
     outstreamThread.start();
     errstreamThread.start();
   }
-  
+
   /**
    * End the process but do not wait for shutdown latch. Non blocking
    */
   public void destroy(){
     process.destroy();
   }
-  
+
   /**
    * Wait a certain number of seconds for a shutdown. Throw up violently if it takes too long
    * @param seconds
@@ -127,5 +143,39 @@ public class CForgroundManager {
     }
     destroy();
     waitForShutdown.await(seconds, TimeUnit.SECONDS);
+  }
+
+  /**
+   * Return a boolean value indicating if the process is running
+   * 
+   * @return a boolean value indicating if the process is running
+   */
+  public boolean isRunning() {
+    return waitForShutdown.getCount() > 0;
+  }
+
+  /**
+   * Returns the exit value of the Cassandra process.
+   *
+   * @return the exit value
+   * @throws IllegalThreadStateException
+   *           if the process has not yet terminated
+   */
+  public int getExitValue() {
+    return process.exitValue();
+  }
+
+  /**
+   * Wait for the Cassandra process termination.
+
+   * @return the exit value of the Cassandra process
+   * @throws InterruptedException
+   *           if the current thread is {@linkplain Thread#interrupt()
+   *           interrupted} by another thread while it is waiting, then the wait
+   *           is ended and an {@link InterruptedException} is thrown.
+   */
+  public int waitFor() throws InterruptedException {
+    waitForShutdown.await();
+    return exitValue.get();
   }
 }
