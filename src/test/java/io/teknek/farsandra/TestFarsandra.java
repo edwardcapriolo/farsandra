@@ -1,17 +1,16 @@
   package io.teknek.farsandra;
 
+import static org.junit.Assert.assertTrue;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-
-
-import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
@@ -66,8 +65,17 @@ public class TestFarsandra {
         }
       } 
     );
+    fs.getManager().addProcessHandler(new ProcessHandler() { 
+      @Override
+      public void handleTermination(int exitValue) {
+        System.out.println("Cassandra terminated with exit value: " + exitValue);
+        started.countDown();
+      }
+    });
     fs.start();
     started.await(10, TimeUnit.SECONDS);
+    assertTrue("Cassandra is not running", fs.getManager().isRunning());
+    fs.getManager().destroyAndWaitForShutdown(10);
   }
   
   @Ignore
@@ -94,8 +102,16 @@ public class TestFarsandra {
         }
       } 
     );
+    fs.getManager().addProcessHandler(new ProcessHandler() { 
+    @Override
+      public void handleTermination(int exitValue) {
+        System.out.println("Cassandra terminated with exit value: " + exitValue);
+        started.countDown();
+      }
+    });
     fs.start();
     started.await();
+    assertTrue("Cassandra is not running", fs.getManager().isRunning());
     }
     
     Farsandra fs2 = new Farsandra();
@@ -119,8 +135,17 @@ public class TestFarsandra {
           }
         }
       });
+      fs2.getManager().addProcessHandler(new ProcessHandler() { 
+        @Override
+        public void handleTermination(int exitValue) {
+          System.out.println("Cassandra terminated with exit value: " + exitValue);
+          started2.countDown();
+        }
+      });
+      
       fs2.start();
       started2.await();
+      assertTrue("Cassandra is not running", fs2.getManager().isRunning());
     }
     
     
@@ -145,8 +170,16 @@ public class TestFarsandra {
           }
         }
       });
+      fs3.getManager().addProcessHandler(new ProcessHandler() { 
+        @Override
+        public void handleTermination(int exitValue) {
+          System.out.println("Cassandra terminated with exit value: " + exitValue);
+          started3.countDown();
+        }
+      });
       fs3.start();
       started3.await();
+      assertTrue("Cassandra is not running", fs3.getManager().isRunning());
     }
 
     try {
@@ -198,12 +231,14 @@ public class TestFarsandra {
     fs.withSeeds(Arrays.asList("localhost"));
     fs.withJmxPort(9999);
     final CountDownLatch started = new CountDownLatch(1);
+    final AtomicBoolean thriftOpen = new AtomicBoolean(false);
     fs.getManager().addOutLineHandler( new LineHandler(){
         @Override
         public void handleLine(String line) {
           System.out.println("out "+line);
           if (line.contains("Listening for thrift clients...")){
             started.countDown();
+            thriftOpen.set(true);
           }
         }
       } 
@@ -215,10 +250,19 @@ public class TestFarsandra {
         System.out.println("err "+line);
       }
     });
+    fs.getManager().addProcessHandler(new ProcessHandler() { 
+      @Override
+      public void handleTermination(int exitValue) {
+        System.out.println("Cassandra terminated with exit value: " + exitValue);
+        started.countDown();
+      }
+    });
     fs.start();
     started.await();
+    assertTrue("Thrift didn't started", thriftOpen.get());
+    assertTrue("Cassandra is not running", fs.getManager().isRunning());
     System.out.println("Thrift open. Party time!");
-    Thread.sleep(10000);
+    fs.getManager().destroyAndWaitForShutdown(10);
   }
   
   @Test
@@ -230,12 +274,14 @@ public class TestFarsandra {
     fs.withHost("localhost");
     fs.withSeeds(Arrays.asList("localhost"));
     final CountDownLatch started = new CountDownLatch(1);
+    final AtomicBoolean thriftOpen = new AtomicBoolean(false);
     fs.getManager().addOutLineHandler( new LineHandler(){
         @Override
         public void handleLine(String line) {
           System.out.println("out "+line);
           if (line.contains("Listening for thrift clients...")){
             started.countDown();
+            thriftOpen.set(true);
           }
         }
       } 
@@ -246,9 +292,18 @@ public class TestFarsandra {
         System.out.println("err "+line);
       }
     });
+    fs.getManager().addProcessHandler(new ProcessHandler() { 
+      @Override
+      public void handleTermination(int exitValue) {
+        System.out.println("Cassandra terminated with exit value: " + exitValue);
+        started.countDown();
+      }
+    });
     fs.start();
     started.await();
+    assertTrue("Thrift didn't started", thriftOpen.get());
+    assertTrue("Cassandra is not running", fs.getManager().isRunning());
     System.out.println("Thrift open. Party time!");
-    Thread.sleep(10000);
+    fs.getManager().destroyAndWaitForShutdown(10);
   }
 }
