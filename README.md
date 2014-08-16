@@ -7,6 +7,8 @@ Run cassandra inside a java project without bring server deps into client classp
 
 Farsandra works by downloading and automatically unpacking a cassandra inside $HOME/.farsandra. It then uses some clever string replacement to edit the yaml file, and start the service in the foreground.
 
+You may be saying to yourself? Why would I want to do that? Can't I run cassandra embedded. Well you could, but C* is not re-entrant. You really can't start and stop it, and its awkward. Besides that it brings several libraries onto your classpath which you do not need from a client prospective and can cause classpath issues.
+
 Usage
 ========
 
