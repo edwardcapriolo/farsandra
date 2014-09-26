@@ -1,4 +1,4 @@
-  package io.teknek.farsandra;
+package io.teknek.farsandra;
 
 import static org.junit.Assert.assertTrue;
 
@@ -35,7 +35,6 @@ public class TestFarsandra {
       try {
         fs.getManager().destroyAndWaitForShutdown(6);
       } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
         e.printStackTrace();
       }
     }

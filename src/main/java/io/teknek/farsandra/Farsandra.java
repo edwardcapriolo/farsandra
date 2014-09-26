@@ -184,12 +184,11 @@ public class Farsandra {
       out.flush();
       out.close();
       in.close();
-
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  
   }
+  
   /**
    * Starts the instance of cassandra in a non-blocking manner. Use line handler and other methods
    * to detect when startup is complete.
@@ -230,14 +229,15 @@ public class Farsandra {
         delete(instanceBase);
       }
     }
-    File instanceConf = new File(instanceBase, "conf");
+    
     if (createConfigurationFiles){ 
       instanceBase.mkdir();
+      File instanceConf = new File(instanceBase, "conf");
+      instanceConf.mkdir();
       File instanceLog = new File(instanceBase, "log");
       instanceLog.mkdir();
       File instanceData = new File(instanceBase, "data");
       instanceData.mkdir();
-      instanceConf.mkdir();
       copyConfToInstanceDir(cRoot , instanceConf);
       File binaryConf = new File(cRoot, "conf");
       File cassandraYaml = new File(binaryConf, "cassandra.yaml");
@@ -294,9 +294,10 @@ public class Farsandra {
     /*String launch = "/bin/bash -c \"/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath() +" JAVA_HOME="+
             "/usr/java/jdk1.7.0_45 "
             + cstart.getAbsolutePath().toString() + " -f \""; */
+    File instanceConf = new File(instanceBase, "conf");
     String command = "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath();
     //command = command + " JAVA_HOME=" + "/usr/java/jdk1.7.0_45 ";
-    command = command + buildJavaHome()+ " ";
+    command = command + buildJavaHome() + " ";
     command = command + " /bin/bash " + cstart.getAbsolutePath().toString() + " -f ";
     String [] launchArray = new String [] { 
             "/bin/bash" , 
@@ -369,6 +370,7 @@ public class Farsandra {
       return "";
     }
   }
+  
   void delete(File f)  {
     if (f.isDirectory()) {
       for (File c : f.listFiles())
@@ -390,8 +392,8 @@ public class Farsandra {
       }
     }
     if (replaced != expectedMatches){
-      throw new RuntimeException("looking to make matches replacement but made "+replaced
-              +" . Likely that farsandra does not understand this version ");
+      throw new RuntimeException("looking to make " + expectedMatches +" replacement but made "+replaced
+              +" . Likely that farsandra does not understand this version of configuration file. ");
     }
     return result;
   }
@@ -409,8 +411,8 @@ public class Farsandra {
       }
     }
     if (replaced != 1){
-      throw new RuntimeException("looking to make 1 replacement but made "+replaced
-              +" . Likely that farsandra does not understand this version ");
+      throw new RuntimeException("looking to make 1 replacement but made " + replaced
+              +" . Likely that farsandra does not understand this version of configuration file");
     }
     return result;
   }
@@ -421,7 +423,7 @@ public class Farsandra {
       if (!file.getName().equals("cassandra.yaml") || 
               !file.getName().equals("cassandra-env.sh")){
         try {
-          Files.copy(file.toPath(), new File(instanceConf,file.getName()).toPath() );
+          Files.copy(file.toPath(), new File(instanceConf, file.getName()).toPath() );
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
