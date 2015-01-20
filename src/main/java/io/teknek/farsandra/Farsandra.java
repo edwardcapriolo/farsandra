@@ -1,5 +1,7 @@
 package io.teknek.farsandra;
 
+import io.teknek.farsandra.config.ConfigHolder;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
@@ -43,6 +45,7 @@ public class Farsandra {
   private List<String> envLinesToAppend;
   private Map<String ,String> envReplacements;
   private Map<String, String> yamlReplacements;
+  private ConfigHolder configHolder;
   
   public Farsandra(){
     manager = new CForgroundManager();
@@ -50,6 +53,7 @@ public class Farsandra {
     envLinesToAppend = new ArrayList<String>();
     envReplacements = new TreeMap<String, String>();
     yamlReplacements = new TreeMap<String, String>();
+    configHolder = new ConfigHolder();
   }
   
   public Farsandra withCleanInstanceOnStart(boolean start){
@@ -171,7 +175,7 @@ public class Farsandra {
   public void download(String version, File location){
     LOGGER.info("Version of Cassandra not found locally. Attempting to fetch it from cloud");
     try {
-      String file = "apache-cassandra-" + version + "-bin.tar.gz";
+      String file = this.getConfigHolder().getProperties().getProperty("cassandra.package.name.prefix") + version + this.getConfigHolder().getProperties().getProperty("cassandra.package.name.suffix");
       URL url = new URL("http://archive.apache.org/dist/cassandra/" + version + "/" + file);
       URLConnection conn = url.openConnection();
       InputStream in = conn.getInputStream();
@@ -439,4 +443,11 @@ public class Farsandra {
     this.manager = manager;
   }
 
+  public ConfigHolder getConfigHolder() {
+	return configHolder;
+  }
+
+  public void setConfigHolder(ConfigHolder configHolder) {
+	this.configHolder = configHolder;
+  } 
 }
