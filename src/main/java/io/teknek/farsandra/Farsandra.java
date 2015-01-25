@@ -71,7 +71,7 @@ public class Farsandra {
     envLinesToAppend = new ArrayList<String>();
     envReplacements = new TreeMap<String, String>();
     yamlReplacements = new TreeMap<String, String>();
-	configHolder = new ConfigHolder(configFile);
+    configHolder = new ConfigHolder(configFile);
    }
   
   public Farsandra withCleanInstanceOnStart(boolean start){
