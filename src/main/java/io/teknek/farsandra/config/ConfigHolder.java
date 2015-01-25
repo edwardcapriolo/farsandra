@@ -1,5 +1,6 @@
 package io.teknek.farsandra.config;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -24,6 +25,18 @@ public class ConfigHolder {
         LOGGER.error("property file '" + propertyFileName + "' not found");
       }
     }
+  }
+  
+  public ConfigHolder(String configFile){
+    properties = new Properties();
+    InputStream inputStream = getClass().getClassLoader().getResourceAsStream(configFile);
+    if (inputStream != null) {
+      try {
+        properties.load(inputStream);
+      } catch (IOException e) {
+        LOGGER.error("property file '" + configFile + "' not found");
+      }
+    }	  
   }
 
   public Properties getProperties() {
