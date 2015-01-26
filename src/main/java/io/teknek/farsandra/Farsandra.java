@@ -1,5 +1,7 @@
 package io.teknek.farsandra;
 
+import io.teknek.farsandra.config.ConfigHolder;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
@@ -43,6 +45,7 @@ public class Farsandra {
   private List<String> envLinesToAppend;
   private Map<String ,String> envReplacements;
   private Map<String, String> yamlReplacements;
+  private ConfigHolder configHolder;
   
   public Farsandra(){
     manager = new CForgroundManager();
@@ -51,6 +54,25 @@ public class Farsandra {
     envReplacements = new TreeMap<String, String>();
     yamlReplacements = new TreeMap<String, String>();
   }
+  
+  public Farsandra(boolean readProps){
+    manager = new CForgroundManager();
+    yamlLinesToAppend = new ArrayList<String>();
+    envLinesToAppend = new ArrayList<String>();
+    envReplacements = new TreeMap<String, String>();
+    yamlReplacements = new TreeMap<String, String>();
+    if (readProps == true) configHolder = new ConfigHolder();
+  }
+  
+  
+  public Farsandra(String configFile){
+    manager = new CForgroundManager();
+    yamlLinesToAppend = new ArrayList<String>();
+    envLinesToAppend = new ArrayList<String>();
+    envReplacements = new TreeMap<String, String>();
+    yamlReplacements = new TreeMap<String, String>();
+    configHolder = new ConfigHolder(configFile);
+   }
   
   public Farsandra withCleanInstanceOnStart(boolean start){
     this.cleanInstanceOnStart = start;
@@ -171,8 +193,15 @@ public class Farsandra {
   public void download(String version, File location){
     LOGGER.info("Version of Cassandra not found locally. Attempting to fetch it from cloud");
     try {
-      String file = "apache-cassandra-" + version + "-bin.tar.gz";
-      URL url = new URL("http://archive.apache.org/dist/cassandra/" + version + "/" + file);
+      String file;
+      URL url;
+      if (configHolder == null){
+        file = "apache-cassandra-" + version + "-bin.tar.gz";
+        url = new URL("http://archive.apache.org/dist/cassandra/" + version + "/" + file);
+      } else {
+        file = this.getConfigHolder().getProperties().getProperty("cassandra.package.name.prefix") + version + this.getConfigHolder().getProperties().getProperty("cassandra.package.name.suffix");
+        url = new URL(this.getConfigHolder().getProperties().getProperty("cassandra.package.dist.site") + version + "/" + file);
+      }
       URLConnection conn = url.openConnection();
       InputStream in = conn.getInputStream();
       FileOutputStream out = new FileOutputStream(new File(location, file));
@@ -199,14 +228,24 @@ public class Farsandra {
     if (!home.exists()){
       throw new RuntimeException("could not find your home " + home);
     }
-    File farsandra = new File(home, ".farsandra");
+    File farsandra;
+    if (configHolder == null){
+      farsandra = new File(home, ".farsandra");
+    } else {
+      farsandra = new File(home, this.getConfigHolder().getProperties().getProperty("farsandra.home.folder"));
+    }
     if (!farsandra.exists()){
       boolean result = farsandra.mkdir();
       if (!result){
         throw new RuntimeException("could not create " + farsandra);
       }
     }
-    String gunzip = "apache-cassandra-"+version+"-bin.tar.gz";
+    String gunzip;
+    if (configHolder == null){
+      gunzip = "apache-cassandra-"+version+"-bin.tar.gz";
+    } else {
+      gunzip = this.getConfigHolder().getProperties().getProperty("cassandra.package.name.prefix")+version+this.getConfigHolder().getProperties().getProperty("cassandra.package.name.suffix");
+    }
     File archive = new File(farsandra, gunzip); 
     if (!archive.exists()){
       download(version,farsandra);
@@ -216,7 +255,12 @@ public class Farsandra {
         throw new RuntimeException(e);
       }
     }
-    File cRoot = new File(farsandra, "apache-cassandra-"+version);
+    File cRoot;
+    if (configHolder == null){
+      cRoot = new File(farsandra, "apache-cassandra-"+version);
+    } else {
+      cRoot = new File(farsandra, this.getConfigHolder().getProperties().getProperty("cassandra.package.name.prefix")+version);
+    }
     if (!cRoot.exists()){
       throw new RuntimeException("could not find root dir " + cRoot);
     }
@@ -232,15 +276,37 @@ public class Farsandra {
     
     if (createConfigurationFiles){ 
       instanceBase.mkdir();
-      File instanceConf = new File(instanceBase, "conf");
+      File instanceConf;
+      File instanceLog;
+      File instanceData;
+      if (configHolder == null){
+        instanceConf = new File(instanceBase, "conf");
+      } else {
+        instanceConf = new File(instanceBase, this.getConfigHolder().getProperties().getProperty("farsandra.conf.dir"));
+      }
       instanceConf.mkdir();
-      File instanceLog = new File(instanceBase, "log");
+      if (configHolder == null){
+        instanceLog = new File(instanceBase, "log");
+      } else {
+        instanceLog = new File(instanceBase, this.getConfigHolder().getProperties().getProperty("farsandra.log.dir"));
+      }
       instanceLog.mkdir();
-      File instanceData = new File(instanceBase, "data");
+      if (configHolder == null){
+        instanceData = new File(instanceBase, "data");
+      } else {
+        instanceData = new File(instanceBase, this.getConfigHolder().getProperties().getProperty("farsandra.data.dir"));
+      }
       instanceData.mkdir();
-      copyConfToInstanceDir(cRoot , instanceConf);
-      File binaryConf = new File(cRoot, "conf");
-      File cassandraYaml = new File(binaryConf, "cassandra.yaml");
+      copyConfToInstanceDir(cRoot, instanceConf, configHolder);
+      File binaryConf;
+      File cassandraYaml;
+      if (configHolder == null){
+        binaryConf = new File(cRoot, "conf");
+        cassandraYaml = new File(binaryConf, "cassandra.yaml");
+      } else {
+        binaryConf = new File(cRoot, this.getConfigHolder().getProperties().getProperty("farsandra.conf.dir"));
+        cassandraYaml = new File(binaryConf, this.getConfigHolder().getProperties().getProperty("cassandra.config.file.name"));
+      }
       makeCassandraEnv(binaryConf, instanceConf);
       List<String> lines;
       try {
@@ -275,9 +341,13 @@ public class Farsandra {
         lines = replaceThisWithThatExpectNMatch(lines, entry.getKey(), entry.getValue(), 1);
       }
       lines = yamlLinesToAppend(lines);
-
-      try (BufferedWriter bw = new BufferedWriter(new FileWriter(
-                new File(instanceConf, "cassandra.yaml")))){
+      File instanceConfToWrite;
+      if (configHolder == null){
+        instanceConfToWrite = new File(instanceConf, "cassandra.yaml");
+      } else {
+    	instanceConfToWrite = new File(instanceConf, this.getConfigHolder().getProperties().getProperty("cassandra.config.file.name"));
+      }
+      try (BufferedWriter bw = new BufferedWriter(new FileWriter(instanceConfToWrite))){
         for (String s: lines){
           bw.write(s);
           bw.newLine();
@@ -294,7 +364,12 @@ public class Farsandra {
     /*String launch = "/bin/bash -c \"/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath() +" JAVA_HOME="+
             "/usr/java/jdk1.7.0_45 "
             + cstart.getAbsolutePath().toString() + " -f \""; */
-    File instanceConf = new File(instanceBase, "conf");
+    File instanceConf;
+    if (configHolder == null){
+      instanceConf = new File(instanceBase, "conf");
+    } else {
+      instanceConf = new File(instanceBase, this.getConfigHolder().getProperties().getProperty("farsandra.conf.dir"));
+    }
     String command = "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath();
     //command = command + " JAVA_HOME=" + "/usr/java/jdk1.7.0_45 ";
     command = command + buildJavaHome() + " ";
@@ -327,7 +402,12 @@ public class Farsandra {
    * @param instanceConf directory for conf to be generated
    */
   private void makeCassandraEnv(File binaryConf, File instanceConf) {
-    String envFile = "cassandra-env.sh";
+    String envFile;
+    if (configHolder == null){
+      envFile = "cassandra-env.sh";
+    } else {
+      envFile = this.getConfigHolder().getProperties().getProperty("cassandra.environment.file.name");
+    }
     File cassandraYaml = new File(binaryConf, envFile);
     List<String> lines;
     try {
@@ -417,15 +497,29 @@ public class Farsandra {
     return result;
   }
   
-  public static void copyConfToInstanceDir(File cassandraBinaryRoot, File instanceConf){
-    File binaryConf = new File(cassandraBinaryRoot, "conf");
-    for (File file: binaryConf.listFiles()){  
-      if (!file.getName().equals("cassandra.yaml") || 
+  public static void copyConfToInstanceDir(File cassandraBinaryRoot, File instanceConf, ConfigHolder configHolder){
+    if (configHolder == null){
+      File binaryConf = new File(cassandraBinaryRoot, "conf");
+      for (File file: binaryConf.listFiles()){  
+        if (!file.getName().equals("cassandra.yaml") || 
               !file.getName().equals("cassandra-env.sh")){
-        try {
-          Files.copy(file.toPath(), new File(instanceConf, file.getName()).toPath() );
-        } catch (IOException e) {
-          throw new RuntimeException(e);
+          try {
+            Files.copy(file.toPath(), new File(instanceConf, file.getName()).toPath() );
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }   	
+    } else {
+      File binaryConf = new File(cassandraBinaryRoot, configHolder.getProperties().getProperty("farsandra.conf.dir"));
+      for (File file: binaryConf.listFiles()){  
+        if (!file.getName().equals(configHolder.getProperties().getProperty("cassandra.config.file.name")) || 
+              !file.getName().equals(configHolder.getProperties().getProperty("cassandra.environment.file.name"))){
+          try {
+            Files.copy(file.toPath(), new File(instanceConf, file.getName()).toPath() );
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
         }
       }
     }
@@ -439,4 +533,11 @@ public class Farsandra {
     this.manager = manager;
   }
 
+  public ConfigHolder getConfigHolder() {
+	return configHolder;
+  }
+
+  public void setConfigHolder(ConfigHolder configHolder) {
+	this.configHolder = configHolder;
+  } 
 }
