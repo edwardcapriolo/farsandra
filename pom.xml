@@ -4,7 +4,7 @@
 	<groupId>io.teknek</groupId>
 	<artifactId>farsandra</artifactId>
 	<name>farsandra</name>
-	<version>0.0.7</version>
+	<version>0.0.8-SNAPSHOT</version>
 	<description>Cassandra testing framework</description>
 	<packaging>jar</packaging>
 
