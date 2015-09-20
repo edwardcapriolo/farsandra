@@ -116,3 +116,55 @@ Puttingit all together
     Thread.sleep(10000);
     fs.getManager().destroy();
 
+Farsandra Maven Plugin
+========
+The project also includes a Maven plugin that takes care of starting / stopping Farsandra (i.e. Cassandra) before and after the integration-test phase.  
+
+How to configure
+========
+In your pom.xml, you have to declare the plugin like this:        
+```xml
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.gazzax.labs</groupId>
+                <artifactId>farsandra-maven-plugin</artifactId>
+                <version>0.1</version>
+                <configuration>
+                    <version>2.0.3</version>
+                    <instanceName>target/cassandra</instanceName>
+                    <stdOutEnabled>true</stdOutEnabled>
+                    <stdErrEnabled>true</stdErrEnabled>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>start-cassandra</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>start</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>stop-cassandra</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>stop</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+```
+    
+That's all: running a build in your project will trigger Farsandra respectively in the pre and post integration-test phases, starting and stopping the requested Cassandra version (see the version parameter) around your integration test suite.        
+The following table summarizes the configuration parameters available with the current version. 
+
+| Name | Description | Default value |
+----|------|----|
+|version| The Cassandra version| N.A. (mandatory)| 
+|cleanInstanceOnStart | | true|
+|instanceName| | "target/cassandra"|
+|createConfigurationFiles| | true|
+|host| | "localhost"|
+|seeds | | ["localhost"]|   
