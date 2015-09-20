@@ -116,12 +116,10 @@ Puttingit all together
     Thread.sleep(10000);
     fs.getManager().destroy();
 
-Farsandra Maven Plugin
-========
+# Farsandra Maven Plugin
 The project also includes a Maven plugin that takes care of starting / stopping Farsandra (i.e. Cassandra) before and after the integration-test phase.  
 
-How to configure
-========
+## How to configure
 In your pom.xml, you have to declare the plugin like this:        
 ```xml
     <build>
@@ -133,8 +131,8 @@ In your pom.xml, you have to declare the plugin like this:
                 <configuration>
                     <version>2.0.3</version>
                     <instanceName>target/cassandra</instanceName>
-                    <stdOutEnabled>true</stdOutEnabled>
-                    <stdErrEnabled>true</stdErrEnabled>
+                    <stdOutEnabled>false</stdOutEnabled>
+                    <stdErrEnabled>false</stdErrEnabled>
                 </configuration>
                 <executions>
                     <execution>
@@ -163,8 +161,17 @@ The following table summarizes the configuration parameters available with the c
 | Name | Description | Default value |
 ----|------|----|
 |version| The Cassandra version| N.A. (mandatory)| 
-|cleanInstanceOnStart | | true|
-|instanceName| | "target/cassandra"|
-|createConfigurationFiles| | true|
-|host| | "localhost"|
-|seeds | | ["localhost"]|   
+|cleanInstanceOnStart | If true, cleans the instance directory| true|
+|instanceName| The instance name, | "target/cassandra"|
+|createConfigurationFiles| Creates the Cassandra configuration files| true|
+|host|the instance listen address (hostname or IP)| "localhost"|
+|seeds |A list of seed nodes| ["localhost"]|  
+|port|The RPC listening port|N.A.|
+|jmxPort|The JMX listening port|N.A|
+|additionalEnvLines|A list of Additional lines to be appended in Cassandra environment file|N.A|
+|additionalYamlLines|A list of additional lines to be appended in Cassandra configuration (yaml) file|N.A|
+|yamlReplacements|A map of key/value replacements pairs. The key is a line that will be replaced with the corrisponding value in the cassandra.yaml configuration file| N.A|
+|javaHome|The value of the JAVA_HOME environment variable| N.A.|
+|stdErrEnabled|Enables / disables the standard err| false|
+|stdOutEnabled|Enables / disables the standard out| false|
+
