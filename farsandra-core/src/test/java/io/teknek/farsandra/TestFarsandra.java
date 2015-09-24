@@ -44,7 +44,7 @@ public class TestFarsandra {
   public void testShutdownWithLatch() throws InterruptedException {
     fs.withVersion("2.0.4");
     fs.withCleanInstanceOnStart(true);
-    fs.withInstanceName("3_1");
+    fs.withInstanceName("target/3_1");
     fs.withCreateConfigurationFiles(true);
     fs.withHost("127.0.0.1");
     fs.withSeeds(Arrays.asList("127.0.0.1"));
@@ -84,7 +84,7 @@ public class TestFarsandra {
     {
     fs.withVersion("2.0.4");
     fs.withCleanInstanceOnStart(true);
-    fs.withInstanceName("3_1");
+    fs.withInstanceName("target/3_1");
     fs.withCreateConfigurationFiles(true);
     fs.withHost("127.0.0.1");
     fs.withSeeds(Arrays.asList("127.0.0.1"));
@@ -118,7 +118,7 @@ public class TestFarsandra {
 
       fs2.withVersion("2.0.4");
       fs2.withCleanInstanceOnStart(true);
-      fs2.withInstanceName("3_2");
+      fs2.withInstanceName("target/3_2");
       fs2.withCreateConfigurationFiles(true);
       fs2.withHost("127.0.0.2");
       fs2.withSeeds(Arrays.asList("127.0.0.1"));
@@ -153,7 +153,7 @@ public class TestFarsandra {
 
       fs3.withVersion("2.0.4");
       fs3.withCleanInstanceOnStart(true);
-      fs3.withInstanceName("3_3");
+      fs3.withInstanceName("target/3_3");
       fs3.withCreateConfigurationFiles(true);
       fs3.withHost("127.0.0.3");
       fs3.withSeeds(Arrays.asList("127.0.0.1"));
@@ -224,7 +224,7 @@ public class TestFarsandra {
   public void simpleOtherTest() throws InterruptedException{
     fs.withVersion("2.0.3");
     fs.withCleanInstanceOnStart(true);
-    fs.withInstanceName("1");
+    fs.withInstanceName("target/1");
     fs.withCreateConfigurationFiles(true);
     fs.withHost("localhost");
     fs.withSeeds(Arrays.asList("localhost"));
@@ -268,7 +268,7 @@ public class TestFarsandra {
   public void simpleTest() throws InterruptedException {
     fs.withVersion("2.0.4");
     fs.withCleanInstanceOnStart(true);
-    fs.withInstanceName("1");
+    fs.withInstanceName("target/1");
     fs.withCreateConfigurationFiles(true);
     fs.withHost("localhost");
     fs.withSeeds(Arrays.asList("localhost"));
