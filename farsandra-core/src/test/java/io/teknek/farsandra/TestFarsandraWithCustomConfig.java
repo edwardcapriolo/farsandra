@@ -44,7 +44,7 @@ public class TestFarsandraWithCustomConfig {
   public void testShutdownWithLatch() throws InterruptedException {
     fs.withVersion("2.0.4");
     fs.withCleanInstanceOnStart(true);
-    fs.withInstanceName("3_1");
+    fs.withInstanceName("target/3_1");
     fs.withCreateConfigurationFiles(true);
     fs.withHost("127.0.0.1");
     fs.withSeeds(Arrays.asList("127.0.0.1"));
@@ -81,7 +81,7 @@ public class TestFarsandraWithCustomConfig {
   public void simpleTest() throws InterruptedException {
     fs.withVersion("2.0.4");
     fs.withCleanInstanceOnStart(true);
-    fs.withInstanceName("1");
+    fs.withInstanceName("target/1");
     fs.withCreateConfigurationFiles(true);
     fs.withHost("localhost");
     fs.withSeeds(Arrays.asList("localhost"));

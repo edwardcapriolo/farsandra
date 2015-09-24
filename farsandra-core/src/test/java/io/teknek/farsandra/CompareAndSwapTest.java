@@ -24,9 +24,9 @@ public class CompareAndSwapTest {
   
   @Test
   public void threeNodeTest() throws Exception {
-    fs1 = UnflushedJoinTest.startInstance("2.0.4", "3_1", "127.0.0.1", "127.0.0.1", 9999);
-    fs2 = UnflushedJoinTest.startInstance("2.0.4", "3_2", "127.0.0.2", "127.0.0.1", 9998);    
-    fs3 = UnflushedJoinTest.startInstance("2.0.4", "3_3", "127.0.0.3", "127.0.0.1", 9997);
+    fs1 = UnflushedJoinTest.startInstance("2.0.4", "target/3_1", "127.0.0.1", "127.0.0.1", 9999);
+    fs2 = UnflushedJoinTest.startInstance("2.0.4", "target/3_2", "127.0.0.2", "127.0.0.1", 9998);    
+    fs3 = UnflushedJoinTest.startInstance("2.0.4", "target/3_3", "127.0.0.3", "127.0.0.1", 9997);
     
     FramedConnWrapper wrap = new FramedConnWrapper("127.0.0.1", 9160);
     String ks = "CREATE KEYSPACE test "
