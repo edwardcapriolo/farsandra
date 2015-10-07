@@ -170,7 +170,7 @@ The following table summarizes the configuration parameters available with the c
 |jmxPort|The JMX listening port|N.A|
 |additionalEnvLines|A list of Additional lines to be appended in Cassandra environment file|N.A|
 |additionalYamlLines|A list of additional lines to be appended in Cassandra configuration (yaml) file|N.A|
-|yamlReplacements|A map of key/value replacements pairs. The key is a line that will be replaced with the corrisponding value in the cassandra.yaml configuration file| N.A|
+|yamlReplacements|A map of key/value replacements pairs. The key is a line that will be replaced with the corresponding value in the cassandra.yaml configuration file| N.A|
 |javaHome|The value of the JAVA_HOME environment variable| N.A.|
 |stdErrEnabled|Enables / disables the standard err| false|
 |stdOutEnabled|Enables / disables the standard out| false|
