@@ -307,7 +307,10 @@ public class Farsandra {
         binaryConf = new File(cRoot, this.getConfigHolder().getProperties().getProperty("farsandra.conf.dir"));
         cassandraYaml = new File(binaryConf, this.getConfigHolder().getProperties().getProperty("cassandra.config.file.name"));
       }
+      
+      setUpLoggingConf(instanceConf, instanceLog);
       makeCassandraEnv(binaryConf, instanceConf);
+
       List<String> lines;
       try {
         lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
@@ -382,7 +385,49 @@ public class Farsandra {
     manager.go();
   }
   
-  private List<String> yamlLinesToAppend(List<String> input){
+  private final String log4jAppenderConfLine = "log4j.appender.R.File";
+  
+  /**
+   * Replaces the default file path of the system log.
+   * Cassandra comes with a log4j configuration that assumes, by default, there's a /var/log/cassandra directory
+   * with R/W permissions. 
+   * While in a regular installation you have the chance to edit that file before starting Cassandra, 
+   * with Farsandra things are different: the instance is automatically started so if you don't have that directory 
+   * (or you didn't set those required permissions), an exception is printed out and the system.log is never created.
+   * This method makes sure the default path of the logging file is replaced with a path located under the Farsandra instance
+   * directory ($FARSANDRA_INSTANCE_DIR/log/system.log).
+   * 
+   * @param instanceConfDirectory the instance "conf" directory.
+   * @param instanceLogDirectory the instance "log" directory.
+   */
+  private void setUpLoggingConf(final File instanceConfDirectory, final File instanceLogDirectory) {
+	  final File log4ServerProperties = new File(instanceConfDirectory, "log4j-server.properties");
+	  final File systemLog = new File(instanceLogDirectory, "system.log");
+	  BufferedWriter writer = null;
+	  try {
+		  final List<String> lines = Files.readAllLines(log4ServerProperties.toPath(), Charset.defaultCharset());
+		  writer = new BufferedWriter(new FileWriter(log4ServerProperties));
+		  for (final String line : lines) {
+			  writer.write(
+					  (line.startsWith(log4jAppenderConfLine)
+							  ? log4jAppenderConfLine.concat("=").concat(systemLog.getAbsolutePath())
+							  : line));
+			  writer.newLine();
+		  }
+ 	  } catch (final IOException exception) {
+		  throw new RuntimeException(exception);
+	  } finally {
+		  if (writer != null) {
+			  try {
+				writer.close();
+			} catch (final IOException ignore) {
+				// Nothing to be done here...
+			}
+		  }
+	  }
+  }
+
+private List<String> yamlLinesToAppend(List<String> input){
     List<String> results = new ArrayList<String>();
     results.addAll(input);
     results.addAll(yamlLinesToAppend);
