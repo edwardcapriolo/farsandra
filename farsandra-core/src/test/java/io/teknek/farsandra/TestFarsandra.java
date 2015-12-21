@@ -42,7 +42,7 @@ public class TestFarsandra {
   
   @Test
   public void testShutdownWithLatch() throws InterruptedException {
-    fs.withVersion("2.0.4");
+    fs.withVersion("2.2.4");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("target/3_1");
     fs.withCreateConfigurationFiles(true);
@@ -51,7 +51,7 @@ public class TestFarsandra {
     fs.withJmxPort(9999);   
     fs.appendLineToYaml("#this means nothing");
     fs.appendLinesToEnv("#this also does nothing");
-    fs.withEnvReplacement("#MALLOC_ARENA_MAX=4", "#MALLOC_ARENA_MAX=wombat");
+    fs.withEnvReplacement("# Per-thread stack size.", "# Per-thread stack size. wombat");
     fs.withYamlReplacement("# NOTE:", "# deNOTE:");
     final CountDownLatch started = new CountDownLatch(1);
     fs.getManager().addOutLineHandler( new LineHandler(){
@@ -82,7 +82,7 @@ public class TestFarsandra {
   public void threeNodeTest() throws InterruptedException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
     Farsandra fs = new Farsandra();
     {
-    fs.withVersion("2.0.4");
+    fs.withVersion("2.2.4");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("target/3_1");
     fs.withCreateConfigurationFiles(true);
@@ -116,7 +116,7 @@ public class TestFarsandra {
     Farsandra fs2 = new Farsandra();
     {
 
-      fs2.withVersion("2.0.4");
+      fs2.withVersion("2.2.4");
       fs2.withCleanInstanceOnStart(true);
       fs2.withInstanceName("target/3_2");
       fs2.withCreateConfigurationFiles(true);
@@ -151,7 +151,7 @@ public class TestFarsandra {
     Farsandra fs3 = new Farsandra();
     {
 
-      fs3.withVersion("2.0.4");
+      fs3.withVersion("2.2.4");
       fs3.withCleanInstanceOnStart(true);
       fs3.withInstanceName("target/3_3");
       fs3.withCreateConfigurationFiles(true);
@@ -222,7 +222,7 @@ public class TestFarsandra {
   
   @Test
   public void simpleOtherTest() throws InterruptedException{
-    fs.withVersion("2.0.3");
+    fs.withVersion("2.2.3");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("target/1");
     fs.withCreateConfigurationFiles(true);
@@ -266,7 +266,7 @@ public class TestFarsandra {
   
   @Test
   public void simpleTest() throws InterruptedException {
-    fs.withVersion("2.0.4");
+    fs.withVersion("2.2.4");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("target/1");
     fs.withCreateConfigurationFiles(true);

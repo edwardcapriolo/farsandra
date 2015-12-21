@@ -74,9 +74,9 @@ public class UnflushedJoinTest {
   
   @Test
   public void threeNodeTest() throws Exception {
-    fs = startInstance("2.0.4", "target/3_1", "127.0.0.1", "127.0.0.1", 9999);
-    fs2 = startInstance("2.0.4", "target/3_2", "127.0.0.2", "127.0.0.1", 9998);    
-    fs3 = startInstance("2.0.4", "target/3_3", "127.0.0.3", "127.0.0.1", 9997);
+    fs = startInstance("2.2.4", "target/3_1", "127.0.0.1", "127.0.0.1", 9999);
+    fs2 = startInstance("2.2.4", "target/3_2", "127.0.0.2", "127.0.0.1", 9998);    
+    fs3 = startInstance("2.2.4", "target/3_3", "127.0.0.3", "127.0.0.1", 9997);
     Thread.sleep(30000);
     FramedConnWrapper wrap = new FramedConnWrapper("127.0.0.1", 9160);
     String ks = "CREATE KEYSPACE test "
@@ -101,7 +101,7 @@ public class UnflushedJoinTest {
     assertAllThere("127.0.0.1"); 
 
     System.out.println("added");
-    fs4 = startInstance("2.0.4", "target/3_4", "127.0.0.4", "127.0.0.1", 9996);
+    fs4 = startInstance("2.2.4", "target/3_4", "127.0.0.4", "127.0.0.1", 9996);
     Thread.sleep(40000);
     assertAllThere("127.0.0.4");
   }

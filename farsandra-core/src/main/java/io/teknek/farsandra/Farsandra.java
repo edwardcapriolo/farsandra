@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -318,18 +320,46 @@ public class Farsandra {
         throw new RuntimeException(e);
       }
       lines = replaceHost(lines);
-      lines = replaceThisWithThatExpectNMatch(lines, 
-              "    - /var/lib/cassandra/data", 
-              "    - " + this.instanceName + "/data/data" , 1);
-      lines = replaceThisWithThatExpectNMatch(lines, 
-              "listen_address: localhost", 
-              "listen_address: " +host , 1);
-      lines = replaceThisWithThatExpectNMatch(lines, 
-              "commitlog_directory: /var/lib/cassandra/commitlog", 
-              "commitlog_directory: " + this.instanceName + "/data/commitlog" , 1 );
+      try {
+        lines = replaceThisWithThatExpectNMatch(lines,
+                "    - /var/lib/cassandra/data",
+                "    - " + this.instanceName + "/data/data" , 1);
+      } catch (RuntimeException ex) {
+        lines = replaceThisWithThatExpectNMatch(lines,
+          "# data_file_directories:",
+          "data_file_directories:" , 1);
+        lines = replaceThisWithThatExpectNMatch(lines,
+          "#     - /var/lib/cassandra/data",
+          "    - " + this.instanceName + "/data/data" , 1);
+      }
       lines = replaceThisWithThatExpectNMatch(lines,
-              "saved_caches_directory: /var/lib/cassandra/saved_caches", 
-              "saved_caches_directory: " + this.instanceName + "/data/saved_caches", 1);
+              "listen_address: localhost",
+              "listen_address: " +host , 1);
+      try {
+        lines = replaceThisWithThatExpectNMatch(lines,
+                "commitlog_directory: /var/lib/cassandra/commitlog",
+                "commitlog_directory: " + this.instanceName + "/data/commitlog" , 1 );
+      } catch (RuntimeException ex) {
+        lines = replaceThisWithThatExpectNMatch(lines,
+          "# commitlog_directory: /var/lib/cassandra/commitlog",
+          "commitlog_directory: " + this.instanceName + "/data/commitlog" , 1 );
+      }
+      try {
+        lines = replaceThisWithThatExpectNMatch(lines,
+                "saved_caches_directory: /var/lib/cassandra/saved_caches",
+                "saved_caches_directory: " + this.instanceName + "/data/saved_caches", 1);
+      } catch (RuntimeException ex) {
+        lines = replaceThisWithThatExpectNMatch(lines,
+          "# saved_caches_directory: /var/lib/cassandra/saved_caches",
+          "saved_caches_directory: " + this.instanceName + "/data/saved_caches", 1);
+      }
+      try {
+        lines = replaceThisWithThatExpectNMatch(lines,
+          "start_rpc: false",
+          "start_rpc: true", 1);
+      } catch (RuntimeException ex) {
+        // Only needed for C* 2.2+
+      }
       if (storagePort != null){
         lines = replaceThisWithThatExpectNMatch(lines, "storage_port: 7000", "storage_port: "+storagePort, 1 );
       }
@@ -384,9 +414,8 @@ public class Farsandra {
     manager.setLaunchArray(launchArray);
     manager.go();
   }
-  
-  private final String log4jAppenderConfLine = "log4j.appender.R.File";
-  
+
+
   /**
    * Replaces the default file path of the system log.
    * Cassandra comes with a log4j configuration that assumes, by default, there's a /var/log/cassandra directory
@@ -400,31 +429,67 @@ public class Farsandra {
    * @param instanceConfDirectory the instance "conf" directory.
    * @param instanceLogDirectory the instance "log" directory.
    */
-  private void setUpLoggingConf(final File instanceConfDirectory, final File instanceLogDirectory) {
-	  final File log4ServerProperties = new File(instanceConfDirectory, "log4j-server.properties");
-	  final File systemLog = new File(instanceLogDirectory, "system.log");
-	  BufferedWriter writer = null;
-	  try {
-		  final List<String> lines = Files.readAllLines(log4ServerProperties.toPath(), Charset.defaultCharset());
-		  writer = new BufferedWriter(new FileWriter(log4ServerProperties));
-		  for (final String line : lines) {
-			  writer.write(
-					  (line.startsWith(log4jAppenderConfLine)
-							  ? log4jAppenderConfLine.concat("=").concat(systemLog.getAbsolutePath())
-							  : line));
-			  writer.newLine();
-		  }
- 	  } catch (final IOException exception) {
-		  throw new RuntimeException(exception);
-	  } finally {
-		  if (writer != null) {
-			  try {
-				writer.close();
-			} catch (final IOException ignore) {
-				// Nothing to be done here...
-			}
-		  }
-	  }
+  private void setUpLoggingConf(final File instanceConfDirectory,
+    final File instanceLogDirectory) {
+    final File log4ServerProperties = new File(instanceConfDirectory,
+      "log4j-server.properties");
+    final File systemLog = new File(instanceLogDirectory, "system.log");
+    if (log4ServerProperties.exists()) {
+      final String log4jAppenderConfLine = "log4j.appender.R.File";
+      BufferedWriter writer = null;
+      try {
+        final List<String> lines = Files.readAllLines(
+          log4ServerProperties.toPath(), Charset.defaultCharset());
+        writer = new BufferedWriter(new FileWriter(log4ServerProperties));
+        for (final String line : lines) {
+          writer.write(
+            (line.startsWith(log4jAppenderConfLine) ? log4jAppenderConfLine
+              .concat("=").concat(systemLog.getAbsolutePath()) : line));
+          writer.newLine();
+        }
+      } catch (final IOException exception) {
+        throw new RuntimeException(exception);
+      } finally {
+        if (writer != null) {
+          try {
+            writer.close();
+          } catch (final IOException ignore) {
+            // Nothing to be done here...
+          }
+        }
+      }
+    } else {
+      final File logbackXml = new File(instanceConfDirectory, "logback.xml");
+      // Setting cassandra.logdir would be the clean way to do this, but that requires modifying bin/cassandra, so...
+      final Pattern filePattern = Pattern.compile("\\s*\\Q<file>${cassandra.logdir}/\\E(?<fileName>[^<]*)\\Q</file>\\E");
+      BufferedWriter writer = null;
+      try {
+        final List<String> lines = Files.readAllLines(
+          logbackXml.toPath(), Charset.defaultCharset());
+        writer = new BufferedWriter(new FileWriter(logbackXml));
+        for (final String line : lines) {
+          Matcher m = filePattern.matcher(line);
+          if  (m.matches()) {
+            File logFile = new File(instanceLogDirectory, m.group(1));
+            writer.write("    <file>" + logFile.getAbsolutePath() + "</file>");
+          } else {
+            writer.write(line);
+          }
+          writer.newLine();
+        }
+      } catch (final IOException exception) {
+        throw new RuntimeException(exception);
+      } finally {
+        if (writer != null) {
+          try {
+            writer.close();
+          } catch (final IOException ignore) {
+            // Nothing to be done here...
+          }
+        }
+      }
+
+    }
   }
 
 private List<String> yamlLinesToAppend(List<String> input){
@@ -495,7 +560,7 @@ private List<String> yamlLinesToAppend(List<String> input){
       return "";
     }
   }
-  
+
   void delete(File f)  {
     if (f.isDirectory()) {
       for (File c : f.listFiles())
@@ -517,7 +582,7 @@ private List<String> yamlLinesToAppend(List<String> input){
       }
     }
     if (replaced != expectedMatches){
-      throw new RuntimeException("looking to make " + expectedMatches +" replacement but made "+replaced
+      throw new RuntimeException("looking to make " + expectedMatches +" of ('" + match + "')->'(" + replace + "') but made "+replaced
               +" . Likely that farsandra does not understand this version of configuration file. ");
     }
     return result;
