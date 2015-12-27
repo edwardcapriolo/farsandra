@@ -42,7 +42,7 @@ public class TestFarsandraWithDefaultConfig {
   
   @Test
   public void testShutdownWithLatch() throws InterruptedException {
-    fs.withVersion("2.0.4");
+    fs.withVersion("2.2.4");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("target/3_1");
     fs.withCreateConfigurationFiles(true);
@@ -51,7 +51,7 @@ public class TestFarsandraWithDefaultConfig {
     fs.withJmxPort(9999);   
     fs.appendLineToYaml("#this means nothing");
     fs.appendLinesToEnv("#this also does nothing");
-    fs.withEnvReplacement("#MALLOC_ARENA_MAX=4", "#MALLOC_ARENA_MAX=wombat");
+    fs.withEnvReplacement("# Per-thread stack size.", "# Per-thread stack size. wombat");
     fs.withYamlReplacement("# NOTE:", "# deNOTE:");
     final CountDownLatch started = new CountDownLatch(1);
     fs.getManager().addOutLineHandler( new LineHandler(){
@@ -79,7 +79,7 @@ public class TestFarsandraWithDefaultConfig {
   
   @Test
   public void simpleTest() throws InterruptedException {
-    fs.withVersion("2.0.4");
+    fs.withVersion("2.2.4");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("target/1");
     fs.withCreateConfigurationFiles(true);
