@@ -34,6 +34,7 @@ public class Farsandra {
   private String host;
   private Integer rpcPort;
   private Integer storagePort;
+  private Integer nativeTransportPort;
   private String instanceName;
   private boolean cleanInstanceOnStart;
   private boolean createConfigurationFiles;
@@ -126,7 +127,24 @@ public class Farsandra {
     this.rpcPort = port;
     return this;
   }
-  
+  /**
+   * Sets the storage port
+   * @param port
+   * @return
+   */
+  public Farsandra withStoragePort(int port){
+    this.storagePort = port;
+    return this;
+  }
+  /**
+   * Sets the CQL native transport port
+   * @param port
+   * @return
+   */
+  public Farsandra withNativeTransportPort(int port){
+    this.nativeTransportPort = port;
+    return this;
+  }
   /**
    * sets the listen host and the rpc host
    * @param host
@@ -365,6 +383,9 @@ public class Farsandra {
       }
       if (rpcPort != null){
         lines = replaceThisWithThatExpectNMatch(lines, "rpc_port: 9160", "rpc_port: " + rpcPort, 1);
+      }
+      if (nativeTransportPort != null){
+        lines = replaceThisWithThatExpectNMatch(lines, "native_transport_port: 9042", "native_transport_port: "+nativeTransportPort, 1 );
       }
       if (seeds != null) {
         lines = replaceThisWithThatExpectNMatch(lines, "          - seeds: \"127.0.0.1\"",
