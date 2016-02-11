@@ -272,6 +272,9 @@ public class TestFarsandra {
     fs.withCreateConfigurationFiles(true);
     fs.withHost("localhost");
     fs.withSeeds(Arrays.asList("localhost"));
+    fs.withPort(9170);
+    fs.withNativeTransportPort(9142);
+    fs.withStoragePort(7100);
     final CountDownLatch started = new CountDownLatch(1);
     final AtomicBoolean thriftOpen = new AtomicBoolean(false);
     fs.getManager().addOutLineHandler( new LineHandler(){
