@@ -90,9 +90,9 @@ public class Start extends AbstractMojo {
 			.withCleanInstanceOnStart(cleanInstanceOnStart)
 			.withCreateConfigurationFiles(createConfigurationFiles);
 
-		for (final Map.Entry<String, String> entry : yamlReplacements.entrySet()) {
-			farsandra.withYamlReplacement(entry.getKey(), entry.getValue());
-		}
+//		for (final Map.Entry<String, String> entry : yamlReplacements.entrySet()) {
+//			farsandra.withYamlReplacement(entry.getKey(), entry.getValue());
+//		}
 
 		for (final String line : additionalYamlLines) {
 			farsandra.appendLineToYaml(line);
