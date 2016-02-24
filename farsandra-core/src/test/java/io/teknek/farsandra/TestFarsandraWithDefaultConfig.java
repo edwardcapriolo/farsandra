@@ -52,7 +52,7 @@ public class TestFarsandraWithDefaultConfig {
     fs.appendLineToYaml("#this means nothing");
     fs.appendLinesToEnv("#this also does nothing");
     fs.withEnvReplacement("# Per-thread stack size.", "# Per-thread stack size. wombat");
-    fs.withYamlReplacement("# NOTE:", "# deNOTE:");
+//    fs.withYamlReplacement("# NOTE:", "# deNOTE:");
     final CountDownLatch started = new CountDownLatch(1);
     fs.getManager().addOutLineHandler( new LineHandler(){
         @Override
