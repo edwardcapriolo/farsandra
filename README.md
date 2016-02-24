@@ -1,4 +1,4 @@
-farsandra
+farsandra ![Build status](https://travis-ci.org/edwardcapriolo/farsandra.svg?branch=master)
 =========
 
 Slogan "Keep Cassandra close, but your classpath closer"
