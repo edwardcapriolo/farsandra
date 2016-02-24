@@ -222,7 +222,7 @@ public class TestFarsandra {
   
   @Test
   public void simpleOtherTest() throws InterruptedException{
-    fs.withVersion("2.2.3");
+    fs.withVersion("2.2.4");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("target/1");
     fs.withCreateConfigurationFiles(true);

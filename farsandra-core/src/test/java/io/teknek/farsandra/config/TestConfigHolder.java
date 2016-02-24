@@ -21,6 +21,6 @@ public class TestConfigHolder {
     assertNotNull(config);
     assertEquals(config.getProperties().getProperty("cassandra.package.name.prefix"),"apache-cassandra-");
     assertEquals(config.getProperties().getProperty("cassandra.package.name.suffix"),"-bin.tar.gz");
-    assertEquals(config.getProperties().getProperty("farsandra.home.folder"),".test");
+    assertEquals(config.getProperties().getProperty("farsandra.home.folder"),".farsandra");
   }
 }

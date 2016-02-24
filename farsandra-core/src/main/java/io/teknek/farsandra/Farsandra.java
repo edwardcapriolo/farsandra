@@ -279,10 +279,13 @@ public class Farsandra {
     if (configHolder == null){
       cRoot = new File(farsandra, "apache-cassandra-"+version);
     } else {
-      cRoot = new File(farsandra, this.getConfigHolder().getProperties().getProperty("cassandra.package.name.prefix")+version);
+      cRoot = new File(farsandra, this.getConfigHolder().getProperties().getProperty("cassandra.package.name.prefix") + version);
     }
     if (!cRoot.exists()){
-      throw new RuntimeException("could not find root dir " + cRoot);
+      boolean create = cRoot.mkdirs();
+      if (!create){
+        throw new RuntimeException("could not find root dir " + cRoot);
+      }
     }
     //#   JVM_OPTS -- Additional arguments to the JVM for heap size, etc
     //#   CASSANDRA_CONF -- Directory containing Cassandra configuration files.
