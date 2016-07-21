@@ -290,7 +290,7 @@ public class Farsandra {
     //#   JVM_OPTS -- Additional arguments to the JVM for heap size, etc
     //#   CASSANDRA_CONF -- Directory containing Cassandra configuration files.
     //String yarn = " -Dcassandra-foreground=yes org.apache.cassandra.service.CassandraDaemon";
-    File instanceBase = new File(instanceName);
+    File instanceBase = new File(cRoot,instanceName);
     if (cleanInstanceOnStart){
       if (instanceBase.exists()){
         delete(instanceBase);
@@ -302,6 +302,8 @@ public class Farsandra {
       File instanceConf;
       File instanceLog;
       File instanceData;
+      File instanceBin;
+      
       if (configHolder == null){
         instanceConf = new File(instanceBase, "conf");
       } else {
@@ -319,104 +321,30 @@ public class Farsandra {
       } else {
         instanceData = new File(instanceBase, this.getConfigHolder().getProperties().getProperty("farsandra.data.dir"));
       }
-      instanceData.mkdir();
+      instanceData.mkdir();      
+      if (configHolder == null){
+        instanceBin = new File(instanceBase, "bin");
+      } else {
+        instanceBin = new File(instanceBase, this.getConfigHolder().getProperties().getProperty("farsandra.bin.dir"));
+      }
+      instanceBin.mkdir();      
+      
       copyConfToInstanceDir(cRoot, instanceConf, configHolder);
       File binaryConf;
-      File cassandraYaml;
+      File binaryBin;
       if (configHolder == null){
         binaryConf = new File(cRoot, "conf");
-        cassandraYaml = new File(binaryConf, "cassandra.yaml");
+        binaryBin = new File(cRoot, "bin");
       } else {
         binaryConf = new File(cRoot, this.getConfigHolder().getProperties().getProperty("farsandra.conf.dir"));
-        cassandraYaml = new File(binaryConf, this.getConfigHolder().getProperties().getProperty("cassandra.config.file.name"));
+        binaryBin = new File(cRoot, this.getConfigHolder().getProperties().getProperty("farsandra.bin.dir"));
       }
       
       setUpLoggingConf(instanceConf, instanceLog);
       makeCassandraEnv(binaryConf, instanceConf);
-
-      List<String> lines;
-      try {
-        lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-      lines = replaceHost(lines);
-      try {
-        lines = replaceThisWithThatExpectNMatch(lines,
-                "    - /var/lib/cassandra/data",
-                "    - " + this.instanceName + "/data/data" , 1);
-      } catch (RuntimeException ex) {
-        lines = replaceThisWithThatExpectNMatch(lines,
-          "# data_file_directories:",
-          "data_file_directories:" , 1);
-        lines = replaceThisWithThatExpectNMatch(lines,
-          "#     - /var/lib/cassandra/data",
-          "    - " + this.instanceName + "/data/data" , 1);
-      }
-      lines = replaceThisWithThatExpectNMatch(lines,
-              "listen_address: localhost",
-              "listen_address: " +host , 1);
-      try {
-        lines = replaceThisWithThatExpectNMatch(lines,
-                "commitlog_directory: /var/lib/cassandra/commitlog",
-                "commitlog_directory: " + this.instanceName + "/data/commitlog" , 1 );
-      } catch (RuntimeException ex) {
-        lines = replaceThisWithThatExpectNMatch(lines,
-          "# commitlog_directory: /var/lib/cassandra/commitlog",
-          "commitlog_directory: " + this.instanceName + "/data/commitlog" , 1 );
-      }
-      try {
-        lines = replaceThisWithThatExpectNMatch(lines,
-                "saved_caches_directory: /var/lib/cassandra/saved_caches",
-                "saved_caches_directory: " + this.instanceName + "/data/saved_caches", 1);
-      } catch (RuntimeException ex) {
-        lines = replaceThisWithThatExpectNMatch(lines,
-          "# saved_caches_directory: /var/lib/cassandra/saved_caches",
-          "saved_caches_directory: " + this.instanceName + "/data/saved_caches", 1);
-      }
-      try {
-        lines = replaceThisWithThatExpectNMatch(lines,
-          "start_rpc: false",
-          "start_rpc: true", 1);
-      } catch (RuntimeException ex) {
-        // Only needed for C* 2.2+
-      }
-      if (storagePort != null){
-        lines = replaceThisWithThatExpectNMatch(lines, "storage_port: 7000", "storage_port: "+storagePort, 1 );
-      }
-      if (rpcPort != null){
-        lines = replaceThisWithThatExpectNMatch(lines, "rpc_port: 9160", "rpc_port: " + rpcPort, 1);
-      }
-      if (nativeTransportPort != null){
-        lines = replaceThisWithThatExpectNMatch(lines, "native_transport_port: 9042", "native_transport_port: "+nativeTransportPort, 1 );
-      }
-      if (seeds != null) {
-        lines = replaceThisWithThatExpectNMatch(lines, "          - seeds: \"127.0.0.1\"",
-                "         - seeds: \"" + seeds.get(0) + "\"", 1);
-      }
-      for (Map.Entry<String,String> entry: yamlReplacements.entrySet()){
-        lines = replaceThisWithThatExpectNMatch(lines, entry.getKey(), entry.getValue(), 1);
-      }
-      lines = yamlLinesToAppend(lines);
-      File instanceConfToWrite;
-      if (configHolder == null){
-        instanceConfToWrite = new File(instanceConf, "cassandra.yaml");
-      } else {
-    	instanceConfToWrite = new File(instanceConf, this.getConfigHolder().getProperties().getProperty("cassandra.config.file.name"));
-      }
-      try (BufferedWriter bw = new BufferedWriter(new FileWriter(instanceConfToWrite))){
-        for (String s: lines){
-          bw.write(s);
-          bw.newLine();
-        }
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      } 
+      makeCassandraBat(binaryBin, instanceBin, instanceConf);
+      makeCassandraYaml(cRoot, binaryConf, instanceConf);
     }
-     //  /bin/bash -c "env - X=5 y=2 sh xandy.sh"
-    //#   JVM_OPTS -- Additional arguments to the JVM for heap size, etc
-    //#   CASSANDRA_CONF -- Directory containing Cassandra configuration files.
-    File cstart = new File(new File( cRoot, "bin"),"cassandra");
     
     /*String launch = "/bin/bash -c \"/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath() +" JAVA_HOME="+
             "/usr/java/jdk1.7.0_45 "
@@ -427,18 +355,51 @@ public class Farsandra {
     } else {
       instanceConf = new File(instanceBase, this.getConfigHolder().getProperties().getProperty("farsandra.conf.dir"));
     }
-    String command = "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath();
-    //command = command + " JAVA_HOME=" + "/usr/java/jdk1.7.0_45 ";
-    command = command + buildJavaHome() + " ";
-    command = command + " /bin/bash " + cstart.getAbsolutePath().toString() + " -f ";
-    String [] launchArray = new String [] { 
-            "/bin/bash" , 
-            "-c" , 
-             command };
-    manager.setLaunchArray(launchArray);
-    manager.go();
+    
+    if (isWindows())
+    {
+        File instanceBin;
+        if (configHolder == null){
+            instanceBin = new File(instanceBase, "bin");
+          } else {
+              instanceBin = new File(instanceBase, this.getConfigHolder().getProperties().getProperty("farsandra.bin.dir"));
+          }
+        
+        File cstart = new File(instanceBin, "cassandra.bat");
+        String[] envArray = new String[] {"CASSANDRA_CONF="+instanceConf.getAbsolutePath(), 
+                                          buildJavaHome(),
+                                          "PATH=" + instanceBin.getAbsolutePath(),
+                                          "CASSANDRA_HOME="+cRoot.getAbsolutePath()};   
+//        String[] commandArray = new String[] { "cmd", "/C", "set"};
+        String[] commandArray = new String[] { "cmd", "/C", cstart.getAbsolutePath(), "-f"};
+        manager.setEvnArray(envArray);
+        manager.setLaunchArray(commandArray);
+    }
+    else
+    {
+        //  /bin/bash -c "env - X=5 y=2 sh xandy.sh"
+        //#   JVM_OPTS -- Additional arguments to the JVM for heap size, etc
+        //#   CASSANDRA_CONF -- Directory containing Cassandra configuration files.
+        File cstart = new File(new File( cRoot, "bin"),"cassandra");
+
+        String command = "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath();
+        //command = command + " JAVA_HOME=" + "/usr/java/jdk1.7.0_45 ";
+        command = command + " " + buildJavaHome();
+        command = command + " /bin/bash " + cstart.getAbsolutePath().toString() + " -f ";
+        String [] launchArray = new String [] { 
+                "/bin/bash" , 
+                "-c" , 
+                 command };
+        manager.setLaunchArray(launchArray);
+    }
+        manager.go();
   }
 
+
+  private boolean isWindows() {
+    String os = System.getProperty("os.name");
+    return os.contains("Windows");
+  }
 
   /**
    * Replaces the default file path of the system log.
@@ -466,13 +427,21 @@ public class Farsandra {
           log4ServerProperties.toPath(), Charset.defaultCharset());
         writer = new BufferedWriter(new FileWriter(log4ServerProperties));
         for (final String line : lines) {
-          writer.write(
-            (line.startsWith(log4jAppenderConfLine) ? log4jAppenderConfLine
-              .concat("=").concat(systemLog.getAbsolutePath()) : line));
+          if (line.startsWith(log4jAppenderConfLine)) {
+            if (isWindows()) {
+              writer.write(log4jAppenderConfLine + "=" + systemLog.getAbsolutePath().replace("\\", "/"));
+            } else {
+              writer.write(log4jAppenderConfLine + "=" + systemLog.getAbsolutePath());
+            }
+          } else {
+            writer.write(line);
+          }
           writer.newLine();
         }
       } catch (final IOException exception) {
         throw new RuntimeException(exception);
+      } catch (final Exception e) {
+          LOGGER.error("Exception writing log4j-server.properties: " + e.getMessage());
       } finally {
         if (writer != null) {
           try {
@@ -574,12 +543,153 @@ private List<String> yamlLinesToAppend(List<String> input){
       throw new RuntimeException(e);
     }
   }
+
+  /**
+   * Builds the cassandra.yaml replacing stuff along the way
+   * @param binaryConf directory of downloaded conf
+   * @param instanceConf directory for conf to be generated
+   */
+  private void makeCassandraYaml(File root, File binaryConf, File instanceConf) {
+    List<String> lines;
+    File cassandraYaml;
+    String fullPath = root.getAbsolutePath() + "\\" + this.instanceName;
+    
+    if (configHolder == null) {
+      cassandraYaml = new File(binaryConf, "cassandra.yaml");
+    } else {
+      cassandraYaml = new File(binaryConf,
+          this.getConfigHolder().getProperties().getProperty("cassandra.config.file.name"));
+    }
+    try {
+      lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    lines = replaceHost(lines);
+    try {
+      lines = replaceThisWithThatExpectNMatch(lines, "    - /var/lib/cassandra/data",
+          "    - " + fullPath + "/data/data", 1);
+    } catch (RuntimeException ex) {
+      lines = replaceThisWithThatExpectNMatch(lines, "# data_file_directories:", "data_file_directories:", 1);
+      lines = replaceThisWithThatExpectNMatch(lines, "#     - /var/lib/cassandra/data",
+          "    - " + fullPath + "/data/data", 1);
+    }
+    lines = replaceThisWithThatExpectNMatch(lines, "listen_address: localhost", "listen_address: " + host, 1);
+    try {
+      lines = replaceThisWithThatExpectNMatch(lines, "commitlog_directory: /var/lib/cassandra/commitlog",
+          "commitlog_directory: " + fullPath + "/data/commitlog", 1);
+    } catch (RuntimeException ex) {
+      lines = replaceThisWithThatExpectNMatch(lines, "# commitlog_directory: /var/lib/cassandra/commitlog",
+          "commitlog_directory: " + fullPath + "/data/commitlog", 1);
+    }
+    try {
+      lines = replaceThisWithThatExpectNMatch(lines, "saved_caches_directory: /var/lib/cassandra/saved_caches",
+          "saved_caches_directory: " + fullPath + "/data/saved_caches", 1);
+    } catch (RuntimeException ex) {
+      lines = replaceThisWithThatExpectNMatch(lines, "# saved_caches_directory: /var/lib/cassandra/saved_caches",
+          "saved_caches_directory: " + fullPath + "/data/saved_caches", 1);
+    }
+    try {
+      lines = replaceThisWithThatExpectNMatch(lines, "start_rpc: false", "start_rpc: true", 1);
+    } catch (RuntimeException ex) {
+      // Only needed for C* 2.2+
+    }
+    if (storagePort != null) {
+      lines = replaceThisWithThatExpectNMatch(lines, "storage_port: 7000", "storage_port: " + storagePort, 1);
+    }
+    if (rpcPort != null) {
+      lines = replaceThisWithThatExpectNMatch(lines, "rpc_port: 9160", "rpc_port: " + rpcPort, 1);
+    }
+    if (nativeTransportPort != null) {
+      lines = replaceThisWithThatExpectNMatch(lines, "native_transport_port: 9042",
+          "native_transport_port: " + nativeTransportPort, 1);
+    }
+    if (seeds != null) {
+      lines = replaceThisWithThatExpectNMatch(lines, "          - seeds: \"127.0.0.1\"",
+          "         - seeds: \"" + seeds.get(0) + "\"", 1);
+    }    
+    for (Map.Entry<String, String> entry : yamlReplacements.entrySet()) {
+      lines = replaceThisWithThatExpectNMatch(lines, entry.getKey(), entry.getValue(), 1);
+    }
+    lines = yamlLinesToAppend(lines);
+    File instanceConfToWrite;
+    if (configHolder == null) {
+      instanceConfToWrite = new File(instanceConf, "cassandra.yaml");
+    } else {
+      instanceConfToWrite = new File(instanceConf,
+          this.getConfigHolder().getProperties().getProperty("cassandra.config.file.name"));
+    }
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(instanceConfToWrite))) {
+      for (String s : lines) {
+        bw.write(s);
+        bw.newLine();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Builds the cassandra.bat replacing stuff along the way
+   * @param binaryBin directory of downloaded bin
+   * @param instanceBin directory for bin to be generated
+   */
+  private void makeCassandraBat(File binaryBin, File instanceBin, File instanceConf) {
+    String fileName;
+    if (configHolder == null) {
+      fileName = "cassandra.bat";
+    } else {
+      fileName = this.getConfigHolder().getProperties().getProperty("cassandra.batch.file.name");
+    }
+    File batchFile = new File(binaryBin, fileName);
+    List<String> lines;
+    try {
+      lines = Files.readAllLines(batchFile.toPath(), Charset.defaultCharset());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    if (jmxPort != null) {
+      lines = replaceSubstringThisWithThatExpectNMatch(lines, "jmxremote.port=7199", "jmxremote.port=" + this.jmxPort,
+          1);
+    }
+
+    lines = replaceSubstringThisWithThatExpectNMatch(lines, "%JAVA_OPTS% %CASSANDRA_PARAMS% -cp", 
+        "%JAVA_OPTS% " + "-Dorg.xerial.snappy.tempdir=\"" + instanceBin.getAbsolutePath() + "\"" + " %CASSANDRA_PARAMS% -cp", 1);
+    
+    // Cassandra 1.2.x
+    if (maxHeapSize != null) {
+      lines = replaceSubstringThisWithThatExpectNMatch(lines, "-Xms1G", "-Xms" + this.maxHeapSize, 1);
+    }
+
+    // NEW HEAP SIZE not supported by Windows // TODO
+
+    // if (heapNewSize != null) {
+    // lines = replaceSubstringThisWithThatExpectNMatch(lines, "-Xmx1G", "-Xmx"
+    // + heapNewSize, 1);
+    // }
+
+    // Windows doesn't support the CASSANDRA_CONF environment variable, so put
+    // our instance configuration
+    // directory first in the classpath.
+
+    lines = replaceSubstringThisWithThatExpectNMatch(lines, "-cp %CASSANDRA_CLASSPATH%",
+        "-cp " + instanceConf.getAbsolutePath() + ";%CASSANDRA_CLASSPATH%", 1);
+
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(new File(instanceBin, fileName)))) {
+      for (String s : lines) {
+        bw.write(s);
+        bw.newLine();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
   
   public String buildJavaHome() {
     if (this.javaHome != null) {
-      return " JAVA_HOME=" + this.javaHome;
+      return "JAVA_HOME=" + this.javaHome;
     } else if (System.getenv("JAVA_HOME") != null) {
-      return " JAVA_HOME=" + System.getenv("JAVA_HOME");
+      return "JAVA_HOME=" + System.getenv("JAVA_HOME");
     } else {
       return "";
     }
@@ -592,6 +702,24 @@ private List<String> yamlLinesToAppend(List<String> input){
     }
     if (!f.delete())
       throw new RuntimeException("Failed to delete file: " + f);
+  }
+  
+  public List<String> replaceSubstringThisWithThatExpectNMatch(List<String> lines, String match, String replace, int expectedMatches){
+    List<String> result = new ArrayList<String>();
+    int replaced = 0;
+    for (String line: lines){
+      if (!line.contains(match)){
+        result.add(line);
+      } else{
+        replaced++;
+        result.add(line.replace(match, replace));
+      }
+    }
+    if (replaced != expectedMatches){
+      throw new RuntimeException("looking to make " + expectedMatches +" of ('" + match + "')->'(" + replace + "') but made "+replaced
+              +" . Likely that farsandra does not understand this version of configuration file. ");
+    }
+    return result;
   }
   
   public List<String> replaceThisWithThatExpectNMatch(List<String> lines, String match, String replace, int expectedMatches){
