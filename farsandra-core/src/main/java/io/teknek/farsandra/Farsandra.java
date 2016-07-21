@@ -41,7 +41,7 @@ public class Farsandra {
   private List<String> seeds;
   private CForgroundManager manager;
   private String javaHome;
-  private Integer jmxPort = 7199;
+  private Integer jmxPort;
   private String maxHeapSize = "256M";
   private String heapNewSize = "100M";
   private List<String> yamlLinesToAppend;

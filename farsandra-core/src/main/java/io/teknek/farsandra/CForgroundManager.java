@@ -1,7 +1,10 @@
 package io.teknek.farsandra;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -19,6 +22,7 @@ public class CForgroundManager {
 
   private static Logger LOGGER = Logger.getLogger(CForgroundManager.class);
   private String [] launchArray;
+  private String [] envArray = null;
   private Process process; 
   /**
    * The exit value of the forked process. Initialized to 9999.
@@ -48,6 +52,16 @@ public class CForgroundManager {
    */
   public void setLaunchArray(String[] launchArray) {
     this.launchArray = launchArray;
+  }
+
+
+  /**
+   * Set the fork command environment variables
+
+   * @param envArray
+   */
+  public void setEvnArray(String[] envArray) {
+    this.envArray = envArray;
   }
 
 
@@ -86,10 +100,18 @@ public class CForgroundManager {
      * String launch = "/bin/bash -c \"env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath()
      * +" JAVA_HOME="+ "/usr/java/jdk1.7.0_45 " + cstart.getAbsolutePath().toString() + " -f \"";
      */
-    LOGGER.debug(Arrays.asList(this.launchArray));
+    LOGGER.debug("ENVIRONMENT: " + Arrays.asList(this.envArray));
+    LOGGER.debug("LAUNCH COMANDS: " + Arrays.asList(this.launchArray));
     Runtime rt = Runtime.getRuntime();
     try {
-      process = rt.exec(launchArray);
+        if (envArray != null)
+        {
+            process = rt.exec(launchArray,envArray);
+        }
+        else
+        {
+            process = rt.exec(launchArray);
+        }
     } catch (IOException e1) {
       LOGGER.error(e1.getMessage());
       throw new RuntimeException(e1);
@@ -129,7 +151,62 @@ public class CForgroundManager {
    * End the process but do not wait for shutdown latch. Non blocking
    */
   public void destroy(){
-    process.destroy();
+    if (isWindows()) {
+      
+      // Unlike in unix killing a process does not kill any child processes.
+      // In order to destroy our Cassandra java process, we'll use wimc to query
+      // for a java process with our instance name in the classpath.
+      String confPath = null;
+      for (String s : envArray)
+      {
+        if (s.contains("CASSANDRA_CONF")) {
+          confPath = s.split("=")[1];
+          
+          // wimc requires paths to be double-quoted backslashes.
+          String wmicKill = "wmic PROCESS where " +
+                            "\"" + "name like '%java%' and CommandLine like " +
+                              "'%" + confPath.replace("\\", "\\\\") + "%' and " +
+                              "CommandLine like '%CassandraDaemon%'" + "\"" +
+                            " call Terminate";
+          try {
+            Process p = Runtime.getRuntime().exec(wmicKill);
+            p.getOutputStream().close();
+            int exitCode = p.exitValue();
+            if (exitCode == 0) {
+              LOGGER.info("Cassandra process destroyed.");
+            }else {
+              LOGGER.error("Non-zero exit code from killing the cassandra process.");
+            }
+            
+          } catch (IOException e) {
+            LOGGER.error("Could not kill the Cassandra java child process");
+          }
+          break;
+        } 
+      }
+      if (confPath == null) {
+        LOGGER.error("Could not locate and kill java child process");
+      }
+      
+      process.destroy();
+      try {
+        process.waitFor();
+      } catch (InterruptedException e) {
+        ; // nothing to do
+      }
+    } else {
+      process.destroy();
+    }
+  }
+  /**
+   * Determines if the operating system is Windows
+   * 
+   * @return a boolean value indicating if we're on Windows OS
+   */
+  
+  private boolean isWindows() {
+    String os = System.getProperty("os.name");
+    return os.contains("Windows");
   }
 
   /**
