@@ -97,8 +97,10 @@ public class CForgroundManager {
      * String launch = "/bin/bash -c \"env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath()
      * +" JAVA_HOME="+ "/usr/java/jdk1.7.0_45 " + cstart.getAbsolutePath().toString() + " -f \"";
      */
-    LOGGER.debug("ENVIRONMENT: " + Arrays.asList(this.envArray));
     LOGGER.debug("LAUNCH COMANDS: " + Arrays.asList(this.launchArray));
+    if (this.envArray != null) {
+      LOGGER.debug("ENVIRONMENT: " + Arrays.asList(this.envArray));
+    }
     Runtime rt = Runtime.getRuntime();
     try {
         if (envArray != null)
