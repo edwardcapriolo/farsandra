@@ -168,7 +168,7 @@ public class CForgroundManager {
           try {
             Process p = Runtime.getRuntime().exec(wmicKill);
             p.getOutputStream().close();
-            p.waitFor(10, TimeUnit.SECONDS);
+            p.waitFor();
             int exitCode = p.exitValue();
             if (exitCode == 0) {
               LOGGER.info("Cassandra process destroyed.");
