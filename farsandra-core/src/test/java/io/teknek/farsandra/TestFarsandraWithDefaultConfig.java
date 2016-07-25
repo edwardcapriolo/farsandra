@@ -78,8 +78,50 @@ public class TestFarsandraWithDefaultConfig {
   }
   
   @Test
-  public void simpleTest() throws InterruptedException {
+  public void simpleTestWith224() throws InterruptedException {
     fs.withVersion("2.2.4");
+    fs.withCleanInstanceOnStart(true);
+    fs.withInstanceName("target/1");
+    fs.withCreateConfigurationFiles(true);
+    fs.withHost("localhost");
+    fs.withSeeds(Arrays.asList("localhost"));
+    final CountDownLatch started = new CountDownLatch(1);
+    final AtomicBoolean thriftOpen = new AtomicBoolean(false);
+    fs.getManager().addOutLineHandler( new LineHandler(){
+        @Override
+        public void handleLine(String line) {
+          System.out.println("out "+line);
+          if (line.contains("Listening for thrift clients...")){
+            started.countDown();
+            thriftOpen.set(true);
+          }
+        }
+      } 
+    );
+    fs.getManager().addErrLineHandler( new LineHandler(){
+      @Override
+      public void handleLine(String line) {
+        System.out.println("err "+line);
+      }
+    });
+    fs.getManager().addProcessHandler(new ProcessHandler() { 
+      @Override
+      public void handleTermination(int exitValue) {
+        System.out.println("Cassandra terminated with exit value: " + exitValue);
+        started.countDown();
+      }
+    });
+    fs.start();
+    started.await();
+    assertTrue("Thrift didn't started", thriftOpen.get());
+    assertTrue("Cassandra is not running", fs.getManager().isRunning());
+    System.out.println("Thrift open. Party time!");
+    fs.getManager().destroyAndWaitForShutdown(10);
+  }
+  
+  @Test
+  public void simpleTestWith1219() throws InterruptedException {
+    fs.withVersion("1.2.19");
     fs.withCleanInstanceOnStart(true);
     fs.withInstanceName("target/1");
     fs.withCreateConfigurationFiles(true);
