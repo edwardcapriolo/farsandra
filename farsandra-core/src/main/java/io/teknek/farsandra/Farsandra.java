@@ -42,8 +42,8 @@ public class Farsandra {
   private CForgroundManager manager;
   private String javaHome;
   private Integer jmxPort;
-  private String maxHeapSize = "256M";
-  private String heapNewSize = "100M";
+  private String maxHeapSize;
+  private String heapNewSize;
   private List<String> yamlLinesToAppend;
   private List<String> envLinesToAppend;
   private Map<String ,String> envReplacements;
@@ -298,7 +298,10 @@ public class Farsandra {
     }
     
     if (createConfigurationFiles){ 
-      instanceBase.mkdir();
+      boolean created = instanceBase.mkdirs();
+      if (!created) {
+        LOGGER.error("Could not create base directory for instance " + instanceBase.getAbsolutePath());
+      }
       File instanceConf;
       File instanceLog;
       File instanceData;
@@ -653,14 +656,27 @@ private List<String> yamlLinesToAppend(List<String> input){
           1);
     }
 
-    lines = replaceSubstringThisWithThatExpectNMatch(lines, "%JAVA_OPTS% %CASSANDRA_PARAMS% -cp", 
-        "%JAVA_OPTS% " + "-Dorg.xerial.snappy.tempdir=\"" + instanceBin.getAbsolutePath() + "\"" + " %CASSANDRA_PARAMS% -cp", 1);
-    
-    // Cassandra 1.2.x
-    if (maxHeapSize != null) {
-      lines = replaceSubstringThisWithThatExpectNMatch(lines, "-Xms1G", "-Xms" + this.maxHeapSize, 1);
-    }
 
+    lines = addJvmOpt(lines, "-Dorg.xerial.snappy.tempdir=" + "\"" + instanceBin.getAbsolutePath() + "\"");
+    lines = addJvmOpt(lines, "-Djava.io.tmpdir=" + "\"" + instanceBin.getAbsolutePath() + "\"");
+    
+    if (maxHeapSize != null) {
+      String[] batchFileXms = {"-Xmx1G", "-Xmx2G" };
+      boolean replaced = false;
+      for (int i = 0; i < batchFileXms.length; i++) {
+        try {
+            lines = replaceSubstringThisWithThatExpectNMatch(lines, batchFileXms[i], "-Xmx" + this.maxHeapSize, 1);
+            replaced = true;
+            break;
+        }
+        catch (Exception e) {
+          if (i == batchFileXms.length - 1) {
+            throw e;
+          }        
+        }
+      }
+    }
+    
     // NEW HEAP SIZE not supported by Windows // TODO
 
     // if (heapNewSize != null) {
@@ -740,6 +756,19 @@ private List<String> yamlLinesToAppend(List<String> input){
     return result;
   }
   
+  // For Windows only
+  protected List<String> addJvmOpt(List<String> lines, String opt) {
+    List<String> result = new ArrayList<String>();
+    for (String line : lines) {
+      if (!line.equals("echo Starting Cassandra Server")) {
+        result.add(line);
+      } else {
+        result.add("set JAVA_OPTS=%JAVA_OPTS% " + opt);
+        result.add(line);
+      }
+    }
+    return result;
+  }
  
   public List<String> replaceHost(List<String> lines){
     List<String> result = new ArrayList<String>();
