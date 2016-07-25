@@ -168,6 +168,7 @@ public class CForgroundManager {
           try {
             Process p = Runtime.getRuntime().exec(wmicKill);
             p.getOutputStream().close();
+            p.waitFor(10, TimeUnit.SECONDS);
             int exitCode = p.exitValue();
             if (exitCode == 0) {
               LOGGER.info("Cassandra process destroyed.");
@@ -175,7 +176,7 @@ public class CForgroundManager {
               LOGGER.error("Non-zero exit code from killing the cassandra process.");
             }
             
-          } catch (IOException e) {
+          } catch (IOException | InterruptedException e) {
             LOGGER.error("Could not kill the Cassandra java child process");
           }
           break;
