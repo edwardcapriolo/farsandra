@@ -388,7 +388,7 @@ public class Farsandra {
         String command = "/usr/bin/env - CASSANDRA_CONF=" + instanceConf.getAbsolutePath();
         //command = command + " JAVA_HOME=" + "/usr/java/jdk1.7.0_45 ";
         command = command + " " + buildJavaHome();
-        command = command + " /bin/bash " + cstart.getAbsolutePath().toString() + " -f ";
+        command = command + " /bin/bash " + cstart.getAbsolutePath() + " -f ";
         String [] launchArray = new String [] { 
                 "/bin/bash" , 
                 "-c" , 
@@ -662,11 +662,9 @@ private List<String> yamlLinesToAppend(List<String> input){
     
     if (maxHeapSize != null) {
       String[] batchFileXms = {"-Xmx1G", "-Xmx2G" };
-      boolean replaced = false;
       for (int i = 0; i < batchFileXms.length; i++) {
         try {
             lines = replaceSubstringThisWithThatExpectNMatch(lines, batchFileXms[i], "-Xmx" + this.maxHeapSize, 1);
-            replaced = true;
             break;
         }
         catch (Exception e) {
