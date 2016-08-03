@@ -17,3 +17,10 @@ cachefile
 
 # PMD
 .pmd
+*.bak
+farsandra-core/ivy.xml
+farsandra-core/src/test/ivy.xml
+farsandra-core/src/test/bin/farsandra.properties
+farsandra-core/src/test/bin/farsandra_custom.properties
+farsandra-core/src/test/bin/log4j.xml
+farsandra-core/src/test/resources/log4j.xml

@@ -146,58 +146,62 @@ public class CForgroundManager {
     errstreamThread.start();
   }
 
+  public void windowsDestroy() {
+    
+    // Unlike in unix killing a process does not kill any child processes.
+    // In order to destroy our Cassandra java process, we'll use wimc to query
+    // for a java process with our instance name in the classpath.
+    String confPath = null;
+    for (String s : envArray)
+    {
+      if (s.contains("CASSANDRA_CONF")) {
+        confPath = s.split("=")[1];
+        
+        // wimc requires paths to be double-quoted backslashes.
+        String wmicKill = "wmic PROCESS where " +
+                          "\"" + "name like '%java%' and CommandLine like " +
+                            "'%" + confPath.replace("\\", "\\\\") + "%' and " +
+                            "CommandLine like '%CassandraDaemon%'" + "\"" +
+                          " delete";
+        try {
+          Process p = Runtime.getRuntime().exec(wmicKill);
+          p.getOutputStream().close();
+          p.waitFor();
+          int exitCode = p.exitValue();
+          if (exitCode == 0) {
+            LOGGER.info("Cassandra process destroyed.");
+          }else {
+            LOGGER.error("Non-zero exit code from killing the cassandra process.");
+          }
+          
+        } catch (IOException | InterruptedException e) {
+          LOGGER.error("Could not kill the Cassandra java child process");
+        }
+        break;
+      } 
+    }
+    if (confPath == null) {
+      LOGGER.error("Could not locate and kill java child process");
+    }
+    process.destroy();
+    try {
+      process.waitFor();
+    } catch (InterruptedException e) {
+      ; // nothing to do
+    }
+  }
+  
   /**
    * End the process but do not wait for shutdown latch. Non blocking
    */
   public void destroy(){
     if (isWindows()) {
-      
-      // Unlike in unix killing a process does not kill any child processes.
-      // In order to destroy our Cassandra java process, we'll use wimc to query
-      // for a java process with our instance name in the classpath.
-      String confPath = null;
-      for (String s : envArray)
-      {
-        if (s.contains("CASSANDRA_CONF")) {
-          confPath = s.split("=")[1];
-          
-          // wimc requires paths to be double-quoted backslashes.
-          String wmicKill = "wmic PROCESS where " +
-                            "\"" + "name like '%java%' and CommandLine like " +
-                              "'%" + confPath.replace("\\", "\\\\") + "%' and " +
-                              "CommandLine like '%CassandraDaemon%'" + "\"" +
-                            " call Terminate";
-          try {
-            Process p = Runtime.getRuntime().exec(wmicKill);
-            p.getOutputStream().close();
-            p.waitFor();
-            int exitCode = p.exitValue();
-            if (exitCode == 0) {
-              LOGGER.info("Cassandra process destroyed.");
-            }else {
-              LOGGER.error("Non-zero exit code from killing the cassandra process.");
-            }
-            
-          } catch (IOException | InterruptedException e) {
-            LOGGER.error("Could not kill the Cassandra java child process");
-          }
-          break;
-        } 
-      }
-      if (confPath == null) {
-        LOGGER.error("Could not locate and kill java child process");
-      }
-      
-      process.destroy();
-      try {
-        process.waitFor();
-      } catch (InterruptedException e) {
-        ; // nothing to do
-      }
+      windowsDestroy();
     } else {
       process.destroy();
     }
   }
+  
   /**
    * Determines if the operating system is Windows
    * 
