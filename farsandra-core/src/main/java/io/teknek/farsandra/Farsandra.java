@@ -293,7 +293,28 @@ public class Farsandra {
     File instanceBase = new File(cRoot,instanceName);
     if (cleanInstanceOnStart){
       if (instanceBase.exists()){
-        delete(instanceBase);
+        boolean retried = false;
+        while (true) {
+          // We retry if an instanceBase is reused, there may be some
+          // latency from killing the process (in Windows) to when the
+          // file locks are released.
+          try {
+            delete(instanceBase);
+            break;
+          }
+          catch (Exception e) {
+            if (retried == false) {
+              retried = true;
+              try {
+                Thread.sleep(2000);
+              } catch (InterruptedException e1) {
+                ;
+              }
+            } else {
+              throw e;
+            }
+          }
+        }
       }
     }
     
