@@ -49,6 +49,8 @@ public class Farsandra {
   private Map<String ,String> envReplacements;
   private Map<String, String> yamlReplacements;
   private ConfigHolder configHolder;
+  private String dataCenterName;
+  private String rackName;
   
   public Farsandra(){
     manager = new CForgroundManager();
@@ -177,6 +179,16 @@ public class Farsandra {
   
   public Farsandra withJmxPort(int jmxPort){
     this.jmxPort = jmxPort;
+    return this;
+  }
+  
+  public Farsandra withDatacentername(String dataCenterName){
+    this.dataCenterName = dataCenterName;
+    return this;
+  }
+  
+  public Farsandra withRackname(String rackName){
+    this.rackName = rackName;
     return this;
   }
   
@@ -334,6 +346,34 @@ public class Farsandra {
       setUpLoggingConf(instanceConf, instanceLog);
       makeCassandraEnv(binaryConf, instanceConf);
 
+      File rackdc = new File(binaryConf, "cassandra-rackdc.properties");
+      
+      List<String> rackDcLines;
+      try {
+        rackDcLines = Files.readAllLines(rackdc.toPath(), Charset.defaultCharset());
+      } catch (IOException e1) {
+        throw new RuntimeException (e1);
+      }
+      if (rackName != null){
+        rackDcLines = replaceThisWithThatExpectNMatch(rackDcLines,
+                "rack=rack1",
+                "rack=" + rackName , 1);
+      }
+      if (dataCenterName != null){
+        rackDcLines = replaceThisWithThatExpectNMatch(rackDcLines,
+                "dc=dc1",
+                "dc=" + dataCenterName , 1);
+      }
+      try (BufferedWriter bw = new BufferedWriter(new FileWriter(new File(instanceConf, "cassandra-rackdc.properties" )))) {
+        for (String s : rackDcLines) {
+          bw.write(s);
+          bw.newLine();
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      
+      
       List<String> lines;
       try {
         lines = Files.readAllLines(cassandraYaml.toPath(), Charset.defaultCharset());
