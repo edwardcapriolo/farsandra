@@ -53,6 +53,8 @@ public class TestFarsandra {
     fs.appendLinesToEnv("#this also does nothing");
     fs.withEnvReplacement("# Per-thread stack size.", "# Per-thread stack size. wombat");
     fs.withYamlReplacement("# NOTE:", "# deNOTE:");
+    fs.withDatacentername("dc2");
+    fs.withRackname("rack1");
     final CountDownLatch started = new CountDownLatch(1);
     fs.getManager().addOutLineHandler( new LineHandler(){
         @Override
