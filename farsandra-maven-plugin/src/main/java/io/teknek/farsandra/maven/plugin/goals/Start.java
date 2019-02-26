@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import static io.teknek.farsandra.maven.plugin.Constants.FARSANDRA;
 
 /**
@@ -39,7 +42,7 @@ public class Start extends AbstractMojo {
 	@Parameter(defaultValue = "true")
 	private boolean createConfigurationFiles;
 
-	@Parameter(defaultValue = "localhost")
+        @Parameter
 	private String host;
 
 	@Parameter
@@ -77,8 +80,17 @@ public class Start extends AbstractMojo {
 	/**
 	 * Builds a new instance of Start Mojo.
 	 */
-	public Start() {
+	public Start() throws UnknownHostException {
 		farsandra = new Farsandra();
+
+                final String localHost = getDefaultListenAddress();
+
+                if (host == null || host == "") {
+                    setHost(localHost);
+                }
+                if (seeds == null || seeds.isEmpty()) {
+                    setSeeds(Arrays.asList(host));
+                }
 	}
 
 	@Override
@@ -179,12 +191,12 @@ public class Start extends AbstractMojo {
 
 	/**
 	 * Sets the list of seed nodes.
-	 * It defaults to a list with just one "localhost" seed node.
+	 * It defaults to a list with just one seed node at "listen_address".
 	 *
 	 * @param seeds the list of seed nodes.
 	 */
-	public void setSeeds(final List<String> seeds) {
-		farsandra.withSeeds(seeds == null || seeds.isEmpty() ? Arrays.asList("localhost") : seeds);
+	public void setSeeds(final List<String> seeds) throws UnknownHostException {
+                farsandra.withSeeds(seeds == null || seeds.isEmpty() ? Arrays.asList(getDefaultListenAddress()) : seeds);
 	}
 
 	/**
@@ -219,7 +231,7 @@ public class Start extends AbstractMojo {
 
 	/**
 	 * Sets the listen address (hostname or IP).
-	 * It defaults to "localhost".
+	 * It defaults to "listen_address".
 	 *
 	 * @param host the listen address (hostname or IP).
 	 */
@@ -258,4 +270,12 @@ public class Start extends AbstractMojo {
 				? instanceName
 				: this.instanceName;
 	}
+
+        /**
+         * Default value for "listen_address"
+         * according to Cassandra documentation.
+         */
+        private String getDefaultListenAddress() throws UnknownHostException {
+            return InetAddress.getLocalHost().getHostAddress();
+        }
 }
